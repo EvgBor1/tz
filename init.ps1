@@ -129,8 +129,9 @@ Configuration Config
         }
         Script GitRepInit
         {
-            SetScript = {                
-                Start-Process "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfScriptsRepURL" -Wait -Verbose
+            SetScript = 
+			{
+				Start-Process "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfScriptsRepURL" -Wait -Verbose
                 Write-Verbose "Clone Rep"
             }
             TestScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
