@@ -120,12 +120,22 @@ Configuration Config
             GetScript = { Test-Path "$using:ConfScriptLocation\git.zip" }
             DependsOn = @("[File]DirectoryCreate")
         }
-        Archive ArchiveExample
+        Archive ArchiveExtract
         {
           Ensure = "Present"
           Path = "$ConfScriptLocation\git.zip"
           Destination = "$ConfScriptLocation\Git"
           DependsOn = @("[Script]Git")
+        }
+        Script GitRepInit
+        {
+            SetScript = {                
+                Start-Process "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfScriptsRepURL" -Wait -Verbose
+                Write-Verbose "Clone Rep"
+            }
+            TestScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
+            GetScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
+            DependsOn = @("[Archive]ArchiveExtract")
         }
         WindowsFeature IIS
         {
@@ -188,11 +198,8 @@ Configuration Config
 
     }
 }
-Config -ConfAppName $AppName -ConfScriptLocation $ScriptLocation
-Set-DscLocalConfigurationManager -Path "$ScriptLocation\Config"
-Start-DscConfiguration -Path "$ScriptLocation\Config" -Wait -Verbose -Force
-if(!(Test-Path "$ScriptLocation\tz\script.ps1")){
-  Start-Process '.\Git\cmd\git.exe' -ArgumentList "clone $ScriptsRepURL" -Wait -Verbose
-}
+Config -ConfAppName $AppName -ConfScriptLocation $ScriptLocation -OutputPath $env:SystemDrive:\DSCconfig
+Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
+Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive:\DSCconfig -Verbose -Wait -Force
 
 
