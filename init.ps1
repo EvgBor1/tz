@@ -86,10 +86,7 @@ Configuration Config
                          {
                             Install-Module -Name xWebAdministration -Force
                             Sleep 10
-                            Start-Process -FilePath "$using:ConfScriptLocation\tz\Config.ps1" -ArgumentList "-ConfAppName $AppName -ConfScriptLocation $ScriptLocation -ConfScriptsRepURL $ScriptsRepURL -OutputPath $env:SystemDrive:\DSCconfig" -Wait -NoNewWindow  
-							Sleep 10
-                            Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
-							Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive:\DSCconfig -Verbose -Wait -Force
+                            Start-Process -FilePath "$using:ConfScriptLocation\tz\Config.ps1" -ArgumentList "-ConfAppName $AppName -ConfScriptLocation $ScriptLocation -ConfScriptsRepURL $ScriptsRepURL -OutputPath $env:SystemDrive:\DSCconfig" -Wait -NoNewWindow
                          }                    
                         Write-Verbose "Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
                         return $true
