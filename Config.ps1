@@ -1,26 +1,4 @@
-param(
-  [string]$AppName="Demo",
-  [string]$ScriptLocation=$env:SystemDrive+'\'+$AppName+'Scripts',
-  [string]$ScriptsRepURL='https://github.com/EvgBor1/tz.git',
-  [string]$GitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip',
-  [string]$WMFURL='https://download.microsoft.com/download/6/F/5/6F5FF66C-6775-42B0-86C4-47D41F2DA187/Win8.1AndW2K12R2-KB3191564-x64.msu'
-)
-
-if ((Get-WindowsFeature -Name DSC-Service).InstallState -like 'Available'){Install-WindowsFeature DSC-Service}
-if(!(Test-Path $ScriptLocation)){
-  try{
-    New-Item $ScriptLocation -ItemType Directory|Out-Null
-    Sleep 1
-    Set-Location $ScriptLocation
-  }
-  catch{
-    Write-Host "Cuoldn't create $ScriptLocation"
-    break
-  }
-}
-
-
-Configuration Config
+Configuration New
 {
     param
     (
@@ -172,9 +150,59 @@ Configuration Config
             State       = "Running"
             DependsOn = @('[WindowsFeature]IIS')
         }
+		xWebsite DefaultSite
+		{
+			Ensure = 'Present'
+			Name = 'Default Web Site'
+			State = 'Stopped'
+			PhysicalPath = 'C:\inetpub\wwwroot'
+			DependsOn = @('[WindowsFeature]IIS','[WindowsFeature]AspNet')
+		}
+		File demofolder
+		{
+			nsure = 'Present'
+			ype = 'Directory'
+			estinationPath = "C:\inetpub\wwwroot\demo"
+		}
+		File Indexfile
+		{
+			Ensure = 'Present'
+			Type = 'file'
+			DestinationPath = "C:\inetpub\wwwroot\demo\index.html"
+			Contents = "<html>
+			<header><title>This is Demo Website</title></header>
+			<body>
+			Welcome to DevopsGuru Channel
+			</body>
+			</html>"
+		}
+		xWebAppPool DemoWebAppPool
+		{
+			Ensure = "Present"
+			State = "Started"
+			Name = "demo"
+		}
+		xWebsite DemoWebSite
+		{
+			Ensure = 'Present'
+			State = 'Started'
+			Name = "Demo"
+			PhysicalPath = "C:\inetpub\wwwroot\demo"
+		}
+
+		xWebApplication demoWebApplication
+		{
+			Name = "demo"
+			Website = "demo"
+			WebAppPool = "demo"
+			PhysicalPath = "C:\inetpub\wwwroot\demo"
+			Ensure = 'Present'
+			DependsOn = @('[xWebSite]DemoWebSite')
+		}
+		
 
     }
 }
-Config -ConfAppName $AppName -ConfScriptLocation $ScriptLocation -ConfScriptsRepURL $ScriptsRepURL -OutputPath $env:SystemDrive:\DSCconfig
+New -ConfAppName $AppName -ConfScriptLocation $ScriptLocation -ConfScriptsRepURL $ScriptsRepURL -OutputPath $env:SystemDrive:\DSCconfig
 Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
 Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive:\DSCconfig -Verbose -Wait -Force
