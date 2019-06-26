@@ -1,4 +1,26 @@
-onfiguration Config
+param(
+  [string]$AppName="Demo",
+  [string]$ScriptLocation=$env:SystemDrive+'\'+$AppName+'Scripts',
+  [string]$ScriptsRepURL='https://github.com/EvgBor1/tz.git',
+  [string]$GitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip',
+  [string]$WMFURL='https://download.microsoft.com/download/6/F/5/6F5FF66C-6775-42B0-86C4-47D41F2DA187/Win8.1AndW2K12R2-KB3191564-x64.msu'
+)
+
+if ((Get-WindowsFeature -Name DSC-Service).InstallState -like 'Available'){Install-WindowsFeature DSC-Service}
+if(!(Test-Path $ScriptLocation)){
+  try{
+    New-Item $ScriptLocation -ItemType Directory|Out-Null
+    Sleep 1
+    Set-Location $ScriptLocation
+  }
+  catch{
+    Write-Host "Cuoldn't create $ScriptLocation"
+    break
+  }
+}
+
+
+Configuration Config
 {
     param
     (
@@ -9,9 +31,7 @@ onfiguration Config
         [string]$ConfGitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip'
 
     )
-    Import-DscResource -ModuleName PSDesiredStateConfiguration
-	Import-DscResource -ModuleName xWebAdministration
-    
+    Import-DscResource -ModuleName PSDesiredStateConfiguration    
     Node $ComputerName
     {
         LocalConfigurationManager
@@ -64,13 +84,9 @@ onfiguration Config
                     {
                         if (! (Get-Module xWebAdministration -ListAvailable))
                          {
-                            Install-Module -Name xWebAdministration -Force -Verbose
-							if(!(Test-Path "$using:ConfScriptLocation\tz\Config.ps1"))
-							{
-								Start-Process -FilePath "$using:ConfScriptLocation\tz\Config.ps1" -ArgumentList "-ConfAppName $AppName -ConfScriptLocation $ScriptLocation -ConfScriptsRepURL $ScriptsRepURL -OutputPath $env:SystemDrive:\DSCconfig" -Wait -NoNewWindow  
-								Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
-								Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive:\DSCconfig -Verbose -Wait -Force
-							}
+                            Install-Module -Name xWebAdministration -Force
+                            Sleep 10
+                            Start-Process -FilePath "$using:ConfScriptLocation\tz\Config.ps1" -ArgumentList "-ConfAppName $AppName -ConfScriptLocation $ScriptLocation -ConfScriptsRepURL $ScriptsRepURL -OutputPath $env:SystemDrive:\DSCconfig" -Wait -NoNewWindow  							
                          }                    
                         Write-Verbose "Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
                         return $true
@@ -156,47 +172,9 @@ onfiguration Config
             State       = "Running"
             DependsOn = @('[WindowsFeature]IIS')
         }
-        if (Get-Module xWebAdministration -ListAvailable)
-        {            
-            xWebsite DefaultSite
-            {
-                Ensure = 'Present'
-                Name = 'Default Web Site'
-                State = 'Stopped'
-                PhysicalPath = 'C:\inetpub\wwwroot'
-                DependsOn = @('[WindowsFeature]IIS','[WindowsFeature]AspNet')
-            }
-            File demofolder
-            {
-                Ensure = 'Present'
-                Type = 'Directory'
-                DestinationPath = "C:\inetpub\wwwroot\$AppName"
-            }
-            File Indexfile
-            {
-                Ensure = 'Present'
-                Type = 'file'
-                DestinationPath = "C:\inetpub\wwwroot\$AppName\index.html"
-                Contents = "<html>
-                <header><title>This is Demo Website</title></header>
-                <body>
-                Welcome to DevopsGuru Channel
-                </body>
-                </html>"
-            }
-            xWebAppPool WebSiteAppPool
-            {
-                Ensure = "Present"
-                State = "Started"
-                Name = $AppName
-            }
-            xWebsite DemoWebSite
-            {
-                Ensure = 'Present'
-                State = 'Started'
-                Name = $AppName
-                PhysicalPath = "C:\inetpub\wwwroot\$AppName"
-            }
-        }
+
     }
 }
+Config -ConfAppName $AppName -ConfScriptLocation $ScriptLocation -ConfScriptsRepURL $ScriptsRepURL -OutputPath $env:SystemDrive:\DSCconfig
+Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
+Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive:\DSCconfig -Verbose -Wait -Force
