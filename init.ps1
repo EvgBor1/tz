@@ -36,6 +36,7 @@ Configuration Config
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true
+            ConfigurationMode = "ApplyAndAutoCorrect"
         }
  
         Script Install_Net_4.5.2
