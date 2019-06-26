@@ -129,10 +129,10 @@ Configuration Config
         }
         Script GitRepInit
         {
-            SetScript = 
-			{
-				Start-Process "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfScriptsRepURL" -Wait -Verbose
-                Write-Verbose "Clone Rep"
+            SetScript = {
+                Set-Location $using:ConfScriptLocation
+                Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfScriptsRepURL" -Wait -NoNewWindow -Verbose
+                
             }
             TestScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
             GetScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
@@ -199,7 +199,7 @@ Configuration Config
 
     }
 }
-Config -ConfAppName $AppName -ConfScriptLocation $ScriptLocation -OutputPath $env:SystemDrive:\DSCconfig
+Config -ConfAppName $AppName -ConfScriptLocation $ScriptLocation -ConfScriptsRepURL $ScriptsRepURL -OutputPath $env:SystemDrive:\DSCconfig
 Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
 Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive:\DSCconfig -Verbose -Wait -Force
 
