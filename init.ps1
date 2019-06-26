@@ -1,8 +1,9 @@
 param(
-  [string]$AppName='Demo',
+  [string]$AppName="Demo",
   [string]$ScriptLocation=$env:SystemDrive+'\'+$AppName+'Scripts',
   [string]$ScriptsRepURL='https://github.com/EvgBor1/tz.git',
-  [string]$GitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip'
+  [string]$GitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip',
+  [string]$WMFURL='https://download.microsoft.com/download/6/F/5/6F5FF66C-6775-42B0-86C4-47D41F2DA187/Win8.1AndW2K12R2-KB3191564-x64.msu'
 )
 
 if ((Get-WindowsFeature -Name DSC-Service).InstallState -like 'Available'){Install-WindowsFeature DSC-Service}
@@ -18,6 +19,7 @@ if(!(Test-Path $ScriptLocation)){
   }
 }
 
+
 Configuration Config
 {
     param
@@ -29,8 +31,7 @@ Configuration Config
         [string]$ConfGitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip'
 
     )
-    Import-DscResource -ModuleName PSDesiredStateConfiguration
-    #Import-DscResource -Module xWebAdministration
+    Import-DscResource -ModuleName PSDesiredStateConfiguration    
     Node $ComputerName
     {
         LocalConfigurationManager
@@ -38,31 +39,39 @@ Configuration Config
             RebootNodeIfNeeded = $true
             ConfigurationMode = "ApplyAndAutoCorrect"
         }
- 
+        
         Script Install_Net_4.5.2
         {
             SetScript = {
                 $SourceURI = "https://download.microsoft.com/download/B/4/1/B4119C11-0423-477B-80EE-7A474314B347/NDP452-KB2901954-Web.exe"
+		 	   $SourceURIWMF = "https://go.microsoft.com/fwlink/?linkid=839516"
                 $FileName = $SourceURI.Split('/')[-1]
                 $BinPath = Join-Path $env:SystemRoot -ChildPath "Temp\$FileName"
- 
+		 	   $BinPath1 = Join-Path $env:SystemRoot -ChildPath "Temp\wmf.msu"
+        
                 if (!(Test-Path $BinPath))
                 {
-                    Invoke-Webrequest -Uri $SourceURI -OutFile $BinPath
+                    Invoke-Webrequest -Uri $SourceURI -OutFile $BinPath				   
                 }
- 
+                if (!(Test-Path $BinPath1))
+                {
+                    Invoke-Webrequest -Uri $SourceURIWMF -OutFile $BinPath1
+                }
+        
                 write-verbose "Installing .Net 4.5.2 from $BinPath"
                 write-verbose "Executing $binpath /q /norestart"
                 Sleep 5
-                Start-Process -FilePath $BinPath -ArgumentList "/q /norestart" -Wait -NoNewWindow           
+                Start-Process -FilePath $BinPath -ArgumentList "/q /norestart" -Wait -NoNewWindow 
+		 	    Sleep 5
+		 	    Start-Process -FilePath "wusa.exe" -ArgumentList "$BinPath1 /quiet /norestart" -Wait -NoNewWindow 
                 Sleep 5
                 Write-Verbose "Setting DSCMachineStatus to reboot server after DSC run is completed"
                 $global:DSCMachineStatus = 1
             }
- 
+        
             TestScript = {
                 [int]$NetBuildVersion = 379893
- 
+        
                 if (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' | %{$_ -match 'Release'})
                 {
                     [int]$CurrentRelease = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full').Release
@@ -73,6 +82,15 @@ Configuration Config
                     }
                     else
                     {
+                        if (! (Get-Module xWebAdministration -ListAvailable))
+                         {
+                            Install-Module -Name xWebAdministration -Force
+                            Sleep 10
+                            Start-Process -FilePath "$using:ConfScriptLocation\tz\Config.ps1" -ArgumentList "-ConfAppName $AppName -ConfScriptLocation $ScriptLocation -ConfScriptsRepURL $ScriptsRepURL -OutputPath $env:SystemDrive:\DSCconfig" -Wait -NoNewWindow  
+							Sleep 10
+                            Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
+							Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive:\DSCconfig -Verbose -Wait -Force
+                         }                    
                         Write-Verbose "Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
                         return $true
                     }
@@ -83,7 +101,7 @@ Configuration Config
                     return $false
                 }
             }
- 
+        
             GetScript = {
                 if (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' | %{$_ -match 'Release'})
                 {
@@ -103,14 +121,14 @@ Configuration Config
             Type = "Directory"      
             DestinationPath = $ConfScriptLocation
         }
-
+        
         File LogDirectoryCreate
         {
             Ensure = "Present"
             Type = "Directory"
             DestinationPath = "$ConfScriptLocation\Logs"
         }
-
+        
         Script Git
         {
             SetScript = {
@@ -157,51 +175,9 @@ Configuration Config
             State       = "Running"
             DependsOn = @('[WindowsFeature]IIS')
         }
-      # Website DefaultSite
-      # {
-      #     Ensure = 'Present'
-      #     Name = 'Default Web Site'
-      #     State = 'Stopped'
-      #     PhysicalPath = 'C:\inetpub\wwwroot'
-      #     DependsOn = @('[WindowsFeature]IIS','[WindowsFeature]AspNet')
-      # }
-      # File demofolder
-      # {
-      #     Ensure = 'Present'
-      #     Type = 'Directory'
-      #     DestinationPath = "C:\inetpub\wwwroot\$AppName"
-      # }
-      # File Indexfile
-      # {
-      #     Ensure = 'Present'
-      #     Type = 'file'
-      #     DestinationPath = "C:\inetpub\wwwroot\$AppName\index.html"
-      #     Contents = "<html>
-      #     <header><title>This is Demo Website</title></header>
-      #     <body>
-      #     Welcome to DevopsGuru Channel
-      #     </body>
-      #     </html>"
-      # }
-      # WebAppPool WebSiteAppPool
-      # {
-      #     Ensure = "Present"
-      #     State = "Started"
-      #     Name = $AppName
-      # }
-      # Website DemoWebSite
-      # {
-      #     Ensure = 'Present'
-      #     State = 'Started'
-      #     Name = $AppName
-      #     PhysicalPath = "C:\inetpub\wwwroot\$AppName"
-      # }
-
 
     }
 }
 Config -ConfAppName $AppName -ConfScriptLocation $ScriptLocation -ConfScriptsRepURL $ScriptsRepURL -OutputPath $env:SystemDrive:\DSCconfig
 Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
 Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive:\DSCconfig -Verbose -Wait -Force
-
-

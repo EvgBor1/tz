@@ -1,4 +1,4 @@
-Configuration Config
+onfiguration Config
 {
     param
     (
@@ -10,11 +10,8 @@ Configuration Config
 
     )
     Import-DscResource -ModuleName PSDesiredStateConfiguration
-    Import-DscResource -ModuleName xWebAdministration
-    if (Get-Module xWebAdministration -ListAvailable)
-    {          
-        Write-Verbose "Module xWebAdministration was imported."
-    }
+	Import-DscResource -ModuleName xWebAdministration
+    
     Node $ComputerName
     {
         LocalConfigurationManager
