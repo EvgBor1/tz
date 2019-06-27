@@ -186,24 +186,6 @@ Configuration NewConfig{
             GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config") }}
             DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder","[Script]SiteInit")
         }
-        Script CreateJob
-        {
-            SetScript = {
-                if(Test-Path "$using:ConfScriptLocation\tz\")
-                {
-                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument "$using:ConfScriptLocation\tz\Config.ps1"
-                    $trigger =  New-ScheduledTaskTrigger -AtStartup
-                    $Principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-                    Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "ApplyNewConfig" -Description "Apply New DSC Configuration at Startup" -Principal $Principal 
-                    Write-Verbose "Setting DSCMachineStatus to reboot server after DSC run is completed"
-                    #$global:DSCMachineStatus = 1
-                }
-                
-            }
-            TestScript = { return (("ApplyNewConfig" -in (Get-ScheduledTask).TaskName) -and (Test-Path "$using:ConfScriptLocation\tz\Config.ps1") -and (Get-Module xWebAdministration -ListAvailable)) }
-            GetScript = { $Result = Get-ScheduledTask|?{$_.TaskName -like "ApplyNewConfig"} }
-            DependsOn = @("[Script]ScriptsInit")
-        }
         WindowsFeature IIS
         {
             Ensure = "Present"
@@ -244,6 +226,43 @@ Configuration NewConfig{
 			Name = $ConfAppName
 			PhysicalPath = "$ConfSitesPath\$ConfAppName"
 		}
+        Script CheckWebSite
+        {
+            SetScript={
+                $WConf="$using:ConfSitesPath\$using:ConfAppName\Web.config"
+                if(Test-Path $WConf)
+                {
+                    (Get-Content $WConf) -replace "<system.web.>","<system.web>" | out-file $WConf -Encoding utf8
+                }
+            }
+            TestScript={
+                try
+                {
+                    $response = Invoke-WebRequest -Uri "http://localhost/" -ErrorAction Stop
+                    # This will only execute if the Invoke-WebRequest is successful.
+                    $StatusCode = $Response.StatusCode
+                }
+                catch
+                {
+                    $StatusCode = $_.Exception.Response.StatusCode.value__
+                }
+                if ($StatusCode -eq 200)
+                {
+                    return $true
+                }
+                else
+                {
+                    return $false
+                }
+            }
+            GetScript={
+                $WConf="$using:ConfSitesPath\$using:ConfAppName\Web.config"
+                if(Test-Path $WConf)
+                {
+                    @{ Result = (Get-Content $WConf }
+                }
+            }
+        }
     }
 }
 NewConfig -ComputerName 'localhost' -OutputPath $env:SystemDrive\DSCconfig

@@ -151,7 +151,13 @@ Configuration Config
                 
             }
             TestScript = { Test-Path "$using:ConfSitesPath\$using:ConfAppName\Web.config" }
-            GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config") }}
+            GetScript={
+                $WConf="$using:ConfSitesPath\$using:ConfAppName\Web.config"
+                if(Test-Path $WConf)
+                {
+                    @{ Result = (Get-Content $WConf }
+                }
+            }
             DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder")
         }
         Script CreateJob
