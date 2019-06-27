@@ -159,7 +159,7 @@ Configuration NewConfig{
                 if(Test-Path "$using:ConfSitesPath\$using:ConfAppName" )
                 {
                     Set-Location "$using:ConfSitesPath\$using:ConfAppName"
-                    Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "llog -1 --pretty=format:"%h" > hash.txt" -Wait -NoNewWindow -Verbose
+                    Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "llog -1 --pretty=format:'%h'" -Wait -NoNewWindow -Verbose
                 }                
             }
             GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config") }}
