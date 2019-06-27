@@ -160,11 +160,10 @@ Configuration Config
                 if(Test-Path "$using:ConfScriptLocation\tz\")
                 {
                     $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument "$using:ConfScriptLocation\tz\Config.ps1"
-                    $trigger =  New-ScheduledTaskTrigger -AtStartup
+                    $trigger =  New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(5)).ToString()
                     $Principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
                     Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "ApplyNewConfig" -Description "Apply New DSC Configuration at Startup" -Principal $Principal 
                     Write-Verbose "Setting DSCMachineStatus to reboot server after DSC run is completed"
-                    #$global:DSCMachineStatus = 1
                 }
                 
             }
