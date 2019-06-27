@@ -188,20 +188,8 @@ Configuration NewConfig{
 			Name = $ConfAppName
 			PhysicalPath = "C:\inetpub\wwwroot\$ConfAppName"
 		}
-
-		xWebApplication demoWebApplication
-		{
-			Name = $ConfAppName
-			Website = $ConfAppName
-			WebAppPool = $ConfAppName
-			PhysicalPath = "C:\inetpub\wwwroot\$ConfAppName"
-			Ensure = 'Present'
-			DependsOn = @('[xWebSite]DemoWebSite')
-		}
-		
-
     }
 }
-NewConfig -CompoterName 'localhost' -OutputPath $env:SystemDrive\DSCconfig
+NewConfig -ComputerName 'localhost' -OutputPath $env:SystemDrive\DSCconfig
 Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
 Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose -Wait -Force
