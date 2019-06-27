@@ -155,7 +155,7 @@ Configuration Config
                 $WConf="$using:ConfSitesPath\$using:ConfAppName\Web.config"
                 if(Test-Path $WConf)
                 {
-                    @{ Result = (Get-Content $WConf }
+                    @{ Result = Get-Content $WConf }
                 }
             }
             DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder")
