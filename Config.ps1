@@ -163,7 +163,7 @@ Configuration NewConfig{
                 }                
             }
             GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config") }}
-            DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder,[Script]SiteInit")
+            DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder","[Script]SiteInit")
         }
         Script CreateJob
         {
