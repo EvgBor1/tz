@@ -146,7 +146,7 @@ Configuration NewConfig{
                 
             }
             TestScript = { Test-Path "$using:ConfSitesPath\$using:ConfAppName\Web.config" }
-            GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config") }}
+            GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config")} }
             DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder")
         }
         Script SiteUpdate
@@ -159,7 +159,7 @@ Configuration NewConfig{
                 if(Test-Path "$using:ConfSitesPath\$using:ConfAppName" )
                 {
                     Set-Location "$using:ConfSitesPath\$using:ConfAppName"
-                    Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "llog -1 --pretty=format:"%h" > ..\hash.txt" -Wait -NoNewWindow -Verbose
+                    Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "llog -1 --pretty=format:"%h" > hash.txt" -Wait -NoNewWindow -Verbose
                 }                
             }
             GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config") }}
@@ -209,25 +209,7 @@ Configuration NewConfig{
 			State = 'Stopped'
 			PhysicalPath = 'C:\inetpub\wwwroot'
 			DependsOn = @('[WindowsFeature]IIS','[WindowsFeature]AspNet')
-		}
-		File SiteFolder
-		{
-			Ensure = 'Present'
-			Type = 'Directory'
-			DestinationPath = "C:\inetpub\wwwroot\$ConfAppName"
-		}
-		File Indexfile
-		{
-			Ensure = 'Present'
-			Type = 'file'
-			DestinationPath = "C:\inetpub\wwwroot\$ConfAppName\index.html"
-			Contents = "<html>
-			<header><title>This is Demo Website</title></header>
-			<body>
-			Welcome to DevopsGuru Channel
-			</body>
-			</html>"
-		}
+		}		
 		xWebAppPool WebAppPool
 		{
 			Ensure = "Present"
@@ -239,7 +221,7 @@ Configuration NewConfig{
 			Ensure = 'Present'
 			State = 'Started'
 			Name = $ConfAppName
-			PhysicalPath = "C:\inetpub\wwwroot\$ConfAppName"
+			PhysicalPath = "$ConfSitesPath\$ConfAppName"
 		}
     }
 }
