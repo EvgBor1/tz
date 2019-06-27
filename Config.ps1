@@ -159,7 +159,27 @@ Configuration NewConfig{
                 if(Test-Path "$using:ConfSitesPath\$using:ConfAppName" )
                 {
                     Set-Location "$using:ConfSitesPath\$using:ConfAppName"
-                    Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "llog -1 --pretty=format:'%h'" -Wait -NoNewWindow -Verbose
+                    Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "log -1 --pretty=format:'%h'" -Wait -NoNewWindow -Verbose -RedirectStandardOutput "$using:ConfSitesPath\New.txt"
+                    if(Test-Path "$using:ConfSitesPath\Latest.txt")
+                    {
+                        $l=@(Get-Content "$using:ConfSitesPath\Latest.txt")
+                        $n=@(Get-Content "$using:ConfSitesPath\New.txt")
+                        if($l -ne $n)
+                        {
+                            Move-Item -Path "$using:ConfSitesPath\New.txt" -Destination "$using:ConfSitesPath\Latest.txt"
+                            Remove-Item "$using:ConfSitesPath\New.txt"
+                            return $false
+                        }
+                        else {
+                            Remove-Item "$using:ConfSitesPath\New.txt"
+                            return $true
+                        }
+                    }
+                    else {
+
+                        Move-Item -Path "$using:ConfSitesPath\New.txt" -Destination "$using:ConfSitesPath\Latest.txt"                        
+                        return $false
+                    }
                 }                
             }
             GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config") }}
