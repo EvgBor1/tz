@@ -19,78 +19,6 @@ Configuration NewConfig{
             RebootNodeIfNeeded = $true
             ConfigurationMode = "ApplyAndAutoCorrect"
         }
-        
-        Script Install_Net_4.5.2
-        {
-            SetScript = {
-                $SourceURI = "https://download.microsoft.com/download/B/4/1/B4119C11-0423-477B-80EE-7A474314B347/NDP452-KB2901954-Web.exe"
-		 	    $SourceURIWMF = "https://go.microsoft.com/fwlink/?linkid=839516"
-                $FileName = $SourceURI.Split('/')[-1]
-                $BinPath = Join-Path $env:SystemRoot -ChildPath "Temp\$FileName"
-		 	    $BinPath1 = Join-Path $env:SystemRoot -ChildPath "Temp\wmf.msu"
-        
-                if (!(Test-Path $BinPath))
-                {
-                    Invoke-Webrequest -Uri $SourceURI -OutFile $BinPath				   
-                }
-                if (!(Test-Path $BinPath1))
-                {
-                    Invoke-Webrequest -Uri $SourceURIWMF -OutFile $BinPath1
-                }
-        
-                write-verbose "Installing .Net 4.5.2 from $BinPath"
-                write-verbose "Executing $binpath /q /norestart"
-                Sleep 5
-                Start-Process -FilePath $BinPath -ArgumentList "/q /norestart" -Wait -NoNewWindow 
-		 	    Sleep 5
-		 	    Start-Process -FilePath "wusa.exe" -ArgumentList "$BinPath1 /quiet /norestart" -Wait -NoNewWindow 
-                Sleep 5
-                Write-Verbose "Setting DSCMachineStatus to reboot server after DSC run is completed"
-                $global:DSCMachineStatus = 1
-            }
-        
-            TestScript = {
-                [int]$NetBuildVersion = 379893
-        
-                if (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' | %{$_ -match 'Release'})
-                {
-                    [int]$CurrentRelease = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full').Release
-                    if ($CurrentRelease -lt $NetBuildVersion)
-                    {
-                        Write-Verbose "Current .Net build version is less than 4.5.2 ($CurrentRelease)"
-                        return $false
-                    }
-                    else
-                    {
-                        if (! (Get-Module xWebAdministration -ListAvailable))
-                         {
-                            Install-Module -Name xWebAdministration -Force
-                            Write-Verbose "Some modules were installed."                            
-                         }                    
-                        Write-Verbose "Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
-                        return $true
-                    }
-                }
-                else
-                {
-                    Write-Verbose ".Net build version not recognised"
-                    return $false
-                }
-            }
-        
-            GetScript = {
-                if (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' | %{$_ -match 'Release'})
-                {
-                    $NetBuildVersion =  (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full').Release
-                    return $NetBuildVersion
-                }
-                else
-                {
-                    Write-Verbose ".Net build version not recognised"
-                    return ".Net 4.5.2 not found"
-                }
-            }
-        }
         File DirectoryCreate
         {
             Ensure = "Present" 
@@ -133,7 +61,6 @@ Configuration NewConfig{
             SetScript = {
                 Set-Location $using:ConfScriptLocation
                 Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfScriptsRepURL" -Wait -NoNewWindow -Verbose
-                
             }
             TestScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
             GetScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
@@ -143,10 +70,19 @@ Configuration NewConfig{
         {
             SetScript = {                
                 Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfSiteRepURL" -WorkingDirectory $using:ConfSitesPath -Wait -NoNewWindow -Verbose
-                
             }
             TestScript = { Test-Path "$using:ConfSitesPath\$using:ConfAppName\Web.config" }
-            GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config")} }
+            GetScript={
+                $WConf="$using:ConfSitesPath\$using:ConfAppName\Web.config"
+                if(Test-Path $WConf)
+                {
+                    @{ Result = Get-Content $WConf }
+                }
+                else
+                {
+                    return "$WConf is not exist"
+                }
+            }
             DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder")
         }
         Script SiteUpdate
@@ -260,6 +196,83 @@ Configuration NewConfig{
                 if(Test-Path $WConf)
                 {
                     @{ Result = Get-Content $WConf }
+                }
+                else
+                {
+                    return "$WConf is not exist"
+                }
+            }
+        }
+        Script Install_FW_WMF
+        {
+            SetScript = {
+                $SourceURI = "https://download.microsoft.com/download/B/4/1/B4119C11-0423-477B-80EE-7A474314B347/NDP452-KB2901954-Web.exe"
+		 	    $SourceURIWMF = "https://go.microsoft.com/fwlink/?linkid=839516"
+                $BinPath = Join-Path $env:SystemRoot -ChildPath "Temp\fw452.exe"
+		 	    $BinPath1 = Join-Path $env:SystemRoot -ChildPath "Temp\wmf.msu"
+
+                if (!(Test-Path $BinPath))
+                {
+                    Invoke-Webrequest -Uri $SourceURI -OutFile $BinPath
+                }
+                if (!(Test-Path $BinPath1))
+                {
+                    Invoke-Webrequest -Uri $SourceURIWMF -OutFile $BinPath1
+                }
+
+                write-verbose "Installing .Net 4.5.2 from $BinPath"
+                write-verbose "Executing $binpath /q /norestart"
+                Sleep 5
+                Start-Process -FilePath $BinPath -ArgumentList "/q /norestart" -Wait -NoNewWindow
+		 	    Sleep 5
+                write-verbose "Installing WMF5.1 from $BinPath1"
+                write-verbose "Executing $binpath1 /quiet /norestart"
+		 	    Start-Process -FilePath "wusa.exe" -ArgumentList "$BinPath1 /quiet /norestart" -Wait -NoNewWindow
+                Sleep 5
+                Write-Verbose "Setting DSCMachineStatus to reboot server after DSC run is completed"
+                Sleep 5
+                $global:DSCMachineStatus = 1
+            }
+
+            TestScript = {
+                [int]$NetBuildVersion = 379893
+
+                if (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' | %{$_ -match 'Release'})
+                {
+                    [int]$CurrentRelease = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full').Release
+                    if ($CurrentRelease -lt $NetBuildVersion)
+                    {
+                        Write-Verbose "Current .Net build version is less than 4.5.2 ($CurrentRelease)"
+                        return $false
+                    }
+                    else
+                    {
+                        if (! (Get-Module xWebAdministration -ListAvailable))
+                         {
+                            Install-Module -Name xWebAdministration -Force
+                            Write-Verbose "Some modules were installed."
+                         }
+                        Write-Verbose "Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
+                        return $true
+                    }
+                }
+                else
+                {
+                    Write-Verbose ".Net build version not recognised"
+                    return $false
+                }
+            }
+
+            GetScript = {
+                if (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' | %{$_ -match 'Release'})
+                {
+                    $NetBuildVersion =  (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full').Release
+                    return $NetBuildVersion
+                }
+                else
+                {
+                    Write-Verbose ".Net build version not recognised"
+                    return ".Net 4.5.2 not found"
                 }
             }
         }

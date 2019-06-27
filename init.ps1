@@ -89,23 +89,6 @@ Configuration Config
             }
             DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder")
         }
-        Script CreateJob
-        {
-            SetScript = {
-                if(Test-Path "$using:ConfScriptLocation\tz\")
-                {
-                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument "$using:ConfScriptLocation\tz\Config.ps1"
-                    $trigger =  New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(5)).ToString()
-                    $Principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-                    Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "ApplyNewConfig" -Description "Apply New DSC Configuration at Startup" -Principal $Principal 
-                    Write-Verbose "Setting DSCMachineStatus to reboot server after DSC run is completed"
-                }
-                
-            }
-            TestScript = { return (("ApplyNewConfig" -in (Get-ScheduledTask).TaskName) -and (Test-Path "$using:ConfScriptLocation\tz\Config.ps1") -and (Get-Module xWebAdministration -ListAvailable)) }
-            GetScript = { $Result = Get-ScheduledTask|?{$_.TaskName -like "ApplyNewConfig"} }
-            DependsOn = @("[Script]ScriptsInit")
-        }
         WindowsFeature IIS
         {
             Ensure = "Present"
@@ -125,7 +108,7 @@ Configuration Config
             DependsOn = @('[WindowsFeature]IIS')
         }
 
-        Script Install_Net_4.5.2
+        Script Install_FW_WMF
         {
             SetScript = {
                 $SourceURI = "https://download.microsoft.com/download/B/4/1/B4119C11-0423-477B-80EE-7A474314B347/NDP452-KB2901954-Web.exe"
@@ -197,6 +180,24 @@ Configuration Config
                     return ".Net 4.5.2 not found"
                 }
             }
+        }
+        Script CreateJob
+        {
+            SetScript = {
+                $NewCfg="$using:ConfScriptLocation\tz\Config.ps1"
+                if((Test-Path $NewCfg) -and (Get-Module xWebAdministration -ListAvailable))
+                {
+                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $NewCfg
+                    $trigger =  New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(5)).ToString()
+                    $Principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+                    Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "ApplyNewConfig" -Description "Apply New DSC Configuration at Startup" -Principal $Principal
+                    Write-Verbose "Setting DSCMachineStatus to reboot server after DSC run is completed"
+                }
+
+            }
+            TestScript = { return ("ApplyNewConfig" -in (Get-ScheduledTask).TaskName) }
+            GetScript = { $Result = Get-ScheduledTask|?{$_.TaskName -like "ApplyNewConfig"} }
+            DependsOn = @("[Script]ScriptsInit","[Script]Install_FW_WMF")
         }
 
     }
