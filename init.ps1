@@ -1,24 +1,4 @@
-param(
-  [string]$AppName="Demo",
-  [string]$ScriptLocation=$env:SystemDrive+'\'+$AppName+'Scripts',
-  [string]$ScriptsRepURL='https://github.com/EvgBor1/tz.git',
-  [string]$GitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip',
-  [string]$WMFURL='https://download.microsoft.com/download/6/F/5/6F5FF66C-6775-42B0-86C4-47D41F2DA187/Win8.1AndW2K12R2-KB3191564-x64.msu'
-)
-
 if ((Get-WindowsFeature -Name DSC-Service).InstallState -like 'Available'){Install-WindowsFeature DSC-Service}
-if(!(Test-Path $ScriptLocation)){
-  try{
-    New-Item $ScriptLocation -ItemType Directory|Out-Null
-    Sleep 1
-    Set-Location $ScriptLocation
-  }
-  catch{
-    Write-Host "Cuoldn't create $ScriptLocation"
-    break
-  }
-}
-
 
 Configuration Config
 {
@@ -26,9 +6,9 @@ Configuration Config
     (
         [string]$ComputerName='localhost',
         [string]$ConfAppName='WebSite',
-        [string]$ConfScriptLocation="C:\WebSiteScripts\ScriptsDir",
+        [string]$ConfScriptLocation=$env:SystemDrive+'\'+$ConfAppName+'Scripts',
         [string]$ConfScriptsRepURL='https://github.com/EvgBor1/tz.git',
-        [string]$ConfGitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip'
+        [string]$ConfGitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip' 
 
     )
     Import-DscResource -ModuleName PSDesiredStateConfiguration    
@@ -44,10 +24,10 @@ Configuration Config
         {
             SetScript = {
                 $SourceURI = "https://download.microsoft.com/download/B/4/1/B4119C11-0423-477B-80EE-7A474314B347/NDP452-KB2901954-Web.exe"
-		 	   $SourceURIWMF = "https://go.microsoft.com/fwlink/?linkid=839516"
+		 	    $SourceURIWMF = "https://go.microsoft.com/fwlink/?linkid=839516"
                 $FileName = $SourceURI.Split('/')[-1]
                 $BinPath = Join-Path $env:SystemRoot -ChildPath "Temp\$FileName"
-		 	   $BinPath1 = Join-Path $env:SystemRoot -ChildPath "Temp\wmf.msu"
+		 	    $BinPath1 = Join-Path $env:SystemRoot -ChildPath "Temp\wmf.msu"
         
                 if (!(Test-Path $BinPath))
                 {
@@ -85,8 +65,7 @@ Configuration Config
                         if (! (Get-Module xWebAdministration -ListAvailable))
                          {
                             Install-Module -Name xWebAdministration -Force
-                            Sleep 10
-                            Start-Process -FilePath 'powershell.exe' -ArgumentList "-executionpolicy bypass -File $using:ConfScriptLocation\tz\Config.ps1 -ConfAppName $AppName -ConfScriptLocation $ScriptLocation -ConfScriptsRepURL $ScriptsRepURL -OutputPath $env:SystemDrive:\DSCconfig" -Wait -NoNewWindow
+                            Write-Verbose "Some modules were installed."                            
                          }                    
                         Write-Verbose "Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
                         return $true
@@ -154,6 +133,22 @@ Configuration Config
             GetScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
             DependsOn = @("[Archive]ArchiveExtract")
         }
+        Script CreateJob
+        {
+            SetScript = {
+                if(Test-Path "$using:ConfScriptLocation\tz\")
+                {
+                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument "$using:ConfScriptLocation\tz\Config.ps1"
+                    $trigger =  New-ScheduledTaskTrigger -AtStartup
+
+                    Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "ApplyNewConfig" -Description "Apply New DSC Configuration at Startup"
+                }
+                
+            }
+            TestScript = { return ("ApplyNewConfig" -in (Get-ScheduledTask).TaskName) -and (Test-Path "$using:ConfScriptLocation\tz\Config.ps1") }
+            GetScript = { $Result = Get-ScheduledTask|?{$_.TaskName -like "ApplyNewConfig"} }
+            DependsOn = @("[Script]GitRepInit")
+        }
         WindowsFeature IIS
         {
             Ensure = "Present"
@@ -175,6 +170,6 @@ Configuration Config
 
     }
 }
-Config -ConfAppName $AppName -ConfScriptLocation $ScriptLocation -ConfScriptsRepURL $ScriptsRepURL -OutputPath $env:SystemDrive:\DSCconfig
+Config -OutputPath $env:SystemDrive\DSCconfig
 Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
-Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive:\DSCconfig -Verbose -Wait -Force
+Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose -Wait -Force
