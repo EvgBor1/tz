@@ -152,13 +152,14 @@ Configuration NewConfig{
         Script SiteUpdate
         {
             SetScript = {
-                Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "pull" -WorkingDirectory "$using:ConfSitesPath\$using:ConfAppName" -Wait -NoNewWindow -Verbose
+                Write-Verbose "Release was updated."
                 
             }
             TestScript = { 
                 if(Test-Path "$using:ConfSitesPath\$using:ConfAppName" )
                 {
                     Set-Location "$using:ConfSitesPath\$using:ConfAppName"
+                    Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "pull" -WorkingDirectory "$using:ConfSitesPath\$using:ConfAppName" -Wait -NoNewWindow -Verbose
                     Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "log -1 --pretty=format:'%h'" -Wait -NoNewWindow -Verbose -RedirectStandardOutput "$using:ConfSitesPath\New.txt"
                     if(Test-Path "$using:ConfSitesPath\Latest.txt")
                     {
@@ -166,8 +167,8 @@ Configuration NewConfig{
                         $n=@(Get-Content "$using:ConfSitesPath\New.txt")
                         if($l -ne $n)
                         {
+                            Remove-Item "$using:ConfSitesPath\Latest.txt"
                             Move-Item -Path "$using:ConfSitesPath\New.txt" -Destination "$using:ConfSitesPath\Latest.txt"
-                            Remove-Item "$using:ConfSitesPath\New.txt"
                             return $false
                         }
                         else {
