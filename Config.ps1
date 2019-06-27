@@ -2,10 +2,12 @@ Configuration NewConfig{
     param
     (
         [string]$ComputerName='localhost',
-        [string]$ConfAppName='WebSite',
+        [string]$ConfAppName='DevOpsTaskJunior',
         [string]$ConfScriptLocation=$env:SystemDrive+'\'+$ConfAppName+'Scripts',
         [string]$ConfScriptsRepURL='https://github.com/EvgBor1/tz.git',
-        [string]$ConfGitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip'        
+        [string]$ConfSiteRepURL='https://github.com/EvgBor1/DevOpsTaskJunior.git',
+        [string]$ConfGitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip',
+        [string]$ConfSitesPath=$env:SystemDrive+'\WebSites'       
 
     )
     Import-DscResource -ModuleName PSDesiredStateConfiguration
@@ -22,8 +24,7 @@ Configuration NewConfig{
         {
             SetScript = {
                 $SourceURI = "https://download.microsoft.com/download/B/4/1/B4119C11-0423-477B-80EE-7A474314B347/NDP452-KB2901954-Web.exe"
-                $SourceURIWMF = "https://go.microsoft.com/fwlink/?linkid=839516"
-                #$SourceURIWMF = "https://download.microsoft.com/download/6/F/5/6F5FF66C-6775-42B0-86C4-47D41F2DA187/Win8.1AndW2K12R2-KB3191564-x64.msu"
+		 	    $SourceURIWMF = "https://go.microsoft.com/fwlink/?linkid=839516"
                 $FileName = $SourceURI.Split('/')[-1]
                 $BinPath = Join-Path $env:SystemRoot -ChildPath "Temp\$FileName"
 		 	    $BinPath1 = Join-Path $env:SystemRoot -ChildPath "Temp\wmf.msu"
@@ -63,7 +64,8 @@ Configuration NewConfig{
                     {
                         if (! (Get-Module xWebAdministration -ListAvailable))
                          {
-                            Install-Module -Name xWebAdministration -Force                            
+                            Install-Module -Name xWebAdministration -Force
+                            Write-Verbose "Some modules were installed."                            
                          }                    
                         Write-Verbose "Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
                         return $true
@@ -95,6 +97,12 @@ Configuration NewConfig{
             Type = "Directory"      
             DestinationPath = $ConfScriptLocation
         }
+        File SiteFolder
+		{
+			Ensure = 'Present'
+			Type = 'Directory'
+			DestinationPath = $ConfSitesPath+'\'+$ConfAppName
+		}
         
         File LogDirectoryCreate
         {
@@ -120,16 +128,60 @@ Configuration NewConfig{
           Destination = "$ConfScriptLocation\Git"
           DependsOn = @("[Script]Git")
         }
-        Script GitRepInit
+        Script ScriptsInit
         {
             SetScript = {
                 Set-Location $using:ConfScriptLocation
                 Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfScriptsRepURL" -Wait -NoNewWindow -Verbose
                 
             }
-            TestScript = { Test-Path "$using:ConfScriptLocation\tz\Config.ps1" }
-            GetScript = { Test-Path "$using:ConfScriptLocation\tz\Config.ps1" }
+            TestScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
+            GetScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
             DependsOn = @("[Archive]ArchiveExtract")
+        }
+        Script SiteInit
+        {
+            SetScript = {                
+                Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfSiteRepURL" -WorkingDirectory $using:ConfSitesPath -Wait -NoNewWindow -Verbose
+                
+            }
+            TestScript = { Test-Path "$using:ConfSitesPath\$using:ConfAppName\Web.config" }
+            GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config") }}
+            DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder")
+        }
+        Script SiteUpdate
+        {
+            SetScript = {
+                Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "pull" -WorkingDirectory "$using:ConfSitesPath\$using:ConfAppName" -Wait -NoNewWindow -Verbose
+                
+            }
+            TestScript = { 
+                if(Test-Path "$using:ConfSitesPath\$using:ConfAppName" )
+                {
+                    Set-Location "$using:ConfSitesPath\$using:ConfAppName"
+                    Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "llog -1 --pretty=format:"%h" > ..\hash.txt" -Wait -NoNewWindow -Verbose
+                }                
+            }
+            GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config") }}
+            DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder,[Script]SiteInit")
+        }
+        Script CreateJob
+        {
+            SetScript = {
+                if(Test-Path "$using:ConfScriptLocation\tz\")
+                {
+                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument "$using:ConfScriptLocation\tz\Config.ps1"
+                    $trigger =  New-ScheduledTaskTrigger -AtStartup
+                    $Principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+                    Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "ApplyNewConfig" -Description "Apply New DSC Configuration at Startup" -Principal $Principal 
+                    Write-Verbose "Setting DSCMachineStatus to reboot server after DSC run is completed"
+                    #$global:DSCMachineStatus = 1
+                }
+                
+            }
+            TestScript = { return (("ApplyNewConfig" -in (Get-ScheduledTask).TaskName) -and (Test-Path "$using:ConfScriptLocation\tz\Config.ps1") -and (Get-Module xWebAdministration -ListAvailable)) }
+            GetScript = { $Result = Get-ScheduledTask|?{$_.TaskName -like "ApplyNewConfig"} }
+            DependsOn = @("[Script]ScriptsInit")
         }
         WindowsFeature IIS
         {
@@ -149,6 +201,7 @@ Configuration NewConfig{
             State       = "Running"
             DependsOn = @('[WindowsFeature]IIS')
         }
+
 		xWebsite DefaultSite
 		{
 			Ensure = 'Present'

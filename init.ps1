@@ -5,10 +5,13 @@ Configuration Config
     param
     (
         [string]$ComputerName='localhost',
-        [string]$ConfAppName='WebSite',
+        [string]$ConfAppName='DevOpsTaskJunior',
         [string]$ConfScriptLocation=$env:SystemDrive+'\'+$ConfAppName+'Scripts',
         [string]$ConfScriptsRepURL='https://github.com/EvgBor1/tz.git',
-        [string]$ConfGitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip' 
+        [string]$ConfSiteRepURL='https://github.com/EvgBor1/DevOpsTaskJunior.git',
+        [string]$ConfGitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip',
+        [string]$ConfSitesPath=$env:SystemDrive+'\WebSites'
+         
 
     )
     Import-DscResource -ModuleName PSDesiredStateConfiguration    
@@ -97,6 +100,12 @@ Configuration Config
             Type = "Directory"      
             DestinationPath = $ConfScriptLocation
         }
+        File SiteFolder
+		{
+			Ensure = 'Present'
+			Type = 'Directory'
+			DestinationPath = $ConfSitesPath+'\'+$ConfAppName
+		}
         
         File LogDirectoryCreate
         {
@@ -122,7 +131,7 @@ Configuration Config
           Destination = "$ConfScriptLocation\Git"
           DependsOn = @("[Script]Git")
         }
-        Script GitRepInit
+        Script ScriptsInit
         {
             SetScript = {
                 Set-Location $using:ConfScriptLocation
@@ -132,6 +141,18 @@ Configuration Config
             TestScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
             GetScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
             DependsOn = @("[Archive]ArchiveExtract")
+        }
+        Script SiteInit
+        {
+            SetScript = {
+                Write-Verbose "cd $using:ConfSitesPath "
+                Set-Location $using:ConfSitesPath
+                Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfSiteRepURL" -Wait -NoNewWindow -Verbose
+                
+            }
+            TestScript = { Test-Path "$using:ConfSitesPath\$using:ConfAppName\Web.config" }
+            GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config") }}
+            DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder")
         }
         Script CreateJob
         {
@@ -147,9 +168,9 @@ Configuration Config
                 }
                 
             }
-            TestScript = { return ("ApplyNewConfig" -in (Get-ScheduledTask).TaskName) -and (Test-Path "$using:ConfScriptLocation\tz\Config.ps1") }
+            TestScript = { return (("ApplyNewConfig" -in (Get-ScheduledTask).TaskName) -and (Test-Path "$using:ConfScriptLocation\tz\Config.ps1") -and (Get-Module xWebAdministration -ListAvailable)) }
             GetScript = { $Result = Get-ScheduledTask|?{$_.TaskName -like "ApplyNewConfig"} }
-            DependsOn = @("[Script]GitRepInit")
+            DependsOn = @("[Script]ScriptsInit")
         }
         WindowsFeature IIS
         {
