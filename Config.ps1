@@ -157,17 +157,17 @@ Configuration NewConfig{
 			PhysicalPath = 'C:\inetpub\wwwroot'
 			DependsOn = @('[WindowsFeature]IIS','[WindowsFeature]AspNet')
 		}
-		File demofolder
+		File SiteFolder
 		{
-			nsure = 'Present'
-			ype = 'Directory'
-			estinationPath = "C:\inetpub\wwwroot\demo"
+			Ensure = 'Present'
+			Type = 'Directory'
+			DestinationPath = "C:\inetpub\wwwroot\$ConfAppName"
 		}
 		File Indexfile
 		{
 			Ensure = 'Present'
 			Type = 'file'
-			DestinationPath = "C:\inetpub\wwwroot\demo\index.html"
+			DestinationPath = "C:\inetpub\wwwroot\$ConfAppName\index.html"
 			Contents = "<html>
 			<header><title>This is Demo Website</title></header>
 			<body>
@@ -175,26 +175,26 @@ Configuration NewConfig{
 			</body>
 			</html>"
 		}
-		xWebAppPool DemoWebAppPool
+		xWebAppPool WebAppPool
 		{
 			Ensure = "Present"
 			State = "Started"
-			Name = "demo"
+			Name = $ConfAppName
 		}
-		xWebsite DemoWebSite
+		xWebsite WebSite
 		{
 			Ensure = 'Present'
 			State = 'Started'
-			Name = "Demo"
-			PhysicalPath = "C:\inetpub\wwwroot\demo"
+			Name = $ConfAppName
+			PhysicalPath = "C:\inetpub\wwwroot\$ConfAppName"
 		}
 
 		xWebApplication demoWebApplication
 		{
-			Name = "demo"
-			Website = "demo"
-			WebAppPool = "demo"
-			PhysicalPath = "C:\inetpub\wwwroot\demo"
+			Name = $ConfAppName
+			Website = $ConfAppName
+			WebAppPool = $ConfAppName
+			PhysicalPath = "C:\inetpub\wwwroot\$ConfAppName"
 			Ensure = 'Present'
 			DependsOn = @('[xWebSite]DemoWebSite')
 		}
