@@ -11,6 +11,7 @@ Configuration NewConfig{
 
     )
     Import-DscResource -ModuleName PSDesiredStateConfiguration
+    Import-DscResource -ModuleName cNtfsAccessControl
     Import-DscResource -ModuleName xWebAdministration    
     Node $ComputerName
     {
@@ -31,6 +32,22 @@ Configuration NewConfig{
 			Type = 'Directory'
 			DestinationPath = $ConfSitesPath+'\'+$ConfAppName
 		}
+        cNtfsPermissionEntry PermissionSet1
+        {
+            Ensure = 'Present'
+            Path = $ConfSitesPath+'\'+$ConfAppName
+            Principal = 'BUILTIN\IIS_IUSRS'
+            AccessControlInformation = @(
+                cNtfsAccessControlInformation
+                {
+                    AccessControlType = 'Allow'
+                    FileSystemRights = 'Modify'
+                    Inheritance = 'ThisFolderSubfoldersAndFiles'
+                    NoPropagateInherit = $false
+                }
+            )
+            DependsOn = '[File]SiteFolder'
+        }
         
         File LogDirectoryCreate
         {
@@ -71,7 +88,21 @@ Configuration NewConfig{
             SetScript = {                
                 Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfSiteRepURL" -WorkingDirectory $using:ConfSitesPath -Wait -NoNewWindow -Verbose
             }
-            TestScript = { Test-Path "$using:ConfSitesPath\$using:ConfAppName\Web.config" }
+            TestScript = {
+                $dir=$using:ConfSitesPath+'\'+$using:ConfAppName
+                if(Test-Path "$dir\Web.config")
+                {
+                    return $true
+                }
+                else
+                {
+                    if(Test-Path $dir)
+                    {
+                        Remove-Item $dir -Force -Recurse
+                    }
+                    return $false
+                }
+            }
             GetScript={
                 $WConf="$using:ConfSitesPath\$using:ConfAppName\Web.config"
                 if(Test-Path $WConf)
@@ -88,7 +119,15 @@ Configuration NewConfig{
         Script SiteUpdate
         {
             SetScript = {
+                $JSON = @'{"text":"Message from E. Borodin's script: Site is OK!"}'@
+                $Slack="https://hooks.slack.com/services/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"
                 Write-Verbose "Release was updated."
+                $Response = Invoke-RestMethod -Uri $Slack -Method Post -Body $JSON -ContentType "application/json"
+                if($Response -eq 'ok')
+                {
+                    #$Log.Info("Notification was coplited!")
+                    Write-Verbose "Notification was coplited!"
+                }
                 
             }
             TestScript = { 
@@ -250,6 +289,7 @@ Configuration NewConfig{
                         if (! (Get-Module xWebAdministration -ListAvailable))
                          {
                             Install-Module -Name xWebAdministration -Force
+                            Install-Module -Name cNtfsAccessControl -Force
                             Write-Verbose "Some modules were installed."
                          }
                         Write-Verbose "Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
