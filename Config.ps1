@@ -7,12 +7,12 @@ Configuration NewConfig{
         [string]$ConfScriptsRepURL='https://github.com/EvgBor1/tz.git',
         [string]$ConfSiteRepURL='https://github.com/EvgBor1/DevOpsTaskJunior.git',
         [string]$ConfGitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip',
-        [string]$ConfSitesPath=$env:SystemDrive+'\WebSites'       
+        [string]$ConfSitesPath=$env:SystemDrive+'\WebSites'
 
     )
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DscResource -ModuleName cNtfsAccessControl
-    Import-DscResource -ModuleName xWebAdministration    
+    Import-DscResource -ModuleName xWebAdministration
     Node $ComputerName
     {
         LocalConfigurationManager
@@ -22,8 +22,8 @@ Configuration NewConfig{
         }
         File DirectoryCreate
         {
-            Ensure = "Present" 
-            Type = "Directory"      
+            Ensure = "Present"
+            Type = "Directory"
             DestinationPath = $ConfScriptLocation
         }
         File SiteFolder
@@ -48,14 +48,14 @@ Configuration NewConfig{
             )
             DependsOn = '[File]SiteFolder'
         }
-        
+
         File LogDirectoryCreate
         {
             Ensure = "Present"
             Type = "Directory"
             DestinationPath = "$ConfScriptLocation\Logs"
         }
-        
+
         Script Git
         {
             SetScript = {
@@ -85,7 +85,7 @@ Configuration NewConfig{
         }
         Script SiteInit
         {
-            SetScript = {                
+            SetScript = {
                 Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfSiteRepURL" -WorkingDirectory $using:ConfSitesPath -Wait -NoNewWindow -Verbose
             }
             TestScript = {
@@ -119,7 +119,23 @@ Configuration NewConfig{
         Script SiteUpdate
         {
             SetScript = {
-                $JSON = @'{"text":"Message from E. Borodin's script: Site is OK!"}'@
+                try
+                {
+                    $response = Invoke-WebRequest -Uri "http://localhost/" -ErrorAction Stop
+                    # This will only execute if the Invoke-WebRequest is successful.
+                    $StatusCode = $Response.StatusCode
+                }
+                catch
+                {
+                    $StatusCode = $_.Exception.Response.StatusCode.value__
+                }
+                if ($StatusCode -eq 200)
+                {
+                    $JSON = @"
+                {
+                    "text":"Message from E. Borodin's script: Site is OK!"
+                }
+"@              | ConvertFrom-Json
                 $Slack="https://hooks.slack.com/services/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"
                 Write-Verbose "Release was updated."
                 $Response = Invoke-RestMethod -Uri $Slack -Method Post -Body $JSON -ContentType "application/json"
@@ -128,9 +144,17 @@ Configuration NewConfig{
                     #$Log.Info("Notification was coplited!")
                     Write-Verbose "Notification was coplited!"
                 }
-                
+                }
+                else
+                {
+                    #$Log.Info("Notification was coplited!")
+                    Write-Verbose "New release has a problem!"
+                }
+
+
             }
-            TestScript = { 
+            TestScript = {
+                Write-Verbose "Testing updates."
                 if(Test-Path "$using:ConfSitesPath\$using:ConfAppName" )
                 {
                     Set-Location "$using:ConfSitesPath\$using:ConfAppName"
@@ -153,10 +177,10 @@ Configuration NewConfig{
                     }
                     else {
 
-                        Move-Item -Path "$using:ConfSitesPath\New.txt" -Destination "$using:ConfSitesPath\Latest.txt"                        
+                        Move-Item -Path "$using:ConfSitesPath\New.txt" -Destination "$using:ConfSitesPath\Latest.txt"
                         return $false
                     }
-                }                
+                }
             }
             GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config") }}
             DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder","[Script]SiteInit")
@@ -187,7 +211,7 @@ Configuration NewConfig{
 			State = 'Stopped'
 			PhysicalPath = 'C:\inetpub\wwwroot'
 			DependsOn = @('[WindowsFeature]IIS','[WindowsFeature]AspNet')
-		}		
+		}
 		xWebAppPool WebAppPool
 		{
 			Ensure = "Present"

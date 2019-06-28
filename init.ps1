@@ -155,6 +155,7 @@ Configuration Config
                         if (! (Get-Module xWebAdministration -ListAvailable))
                          {
                             Install-Module -Name xWebAdministration -Force
+                            Install-Module -Name cNtfsAccessControl -Force
                             Write-Verbose "Some modules were installed."
                          }
                         Write-Verbose "Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
