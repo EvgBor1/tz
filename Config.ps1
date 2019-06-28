@@ -119,9 +119,10 @@ Configuration NewConfig{
         Script SiteUpdate
         {
             SetScript = {
+                $Slack="$using:ConfScriptLocation\tz\slack.ps1"
                 try
                 {
-                    $response = Invoke-WebRequest -Uri "http://localhost/" -ErrorAction Stop
+                    $response = Invoke-WebRequest -Uri "http://localhost/" -UseBasicParsing -ErrorAction Stop
                     # This will only execute if the Invoke-WebRequest is successful.
                     $StatusCode = $Response.StatusCode
                 }
@@ -131,19 +132,17 @@ Configuration NewConfig{
                 }
                 if ($StatusCode -eq 200)
                 {
-                    $JSON = @"
-                    {
-                        "text":"Message from E. Borodin's script: Site is OK!"
-                    }
-"@                  | ConvertFrom-Json
-                $Slack="https://hooks.slack.com/services/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"
-                Write-Verbose "Release was updated."
-                $Response = Invoke-RestMethod -Uri $Slack -Method Post -Body $JSON -ContentType "application/json"
-                if($Response -eq 'ok')
-                {
-                    #$Log.Info("Notification was coplited!")
-                    Write-Verbose "Notification was coplited!"
-                }
+                    try
+                        {
+                            . ($Slack)
+                            Slack-Notification    
+                        }
+                        catch {
+                            #$Log.Fatal('Error while loading supporting PowerShell Scripts.')
+                            #$Log.Fatal($_.Exception.Message)
+                            Write-Verbose "Notification Error!"
+                            Write-Verbose $_.Exception.Message
+                        }
                 }
                 else
                 {
@@ -157,6 +156,7 @@ Configuration NewConfig{
                 Write-Verbose "Testing updates."
                 if(Test-Path "$using:ConfSitesPath\$using:ConfAppName" )
                 {
+                    Write-Verbose "Changing location"
                     Set-Location "$using:ConfSitesPath\$using:ConfAppName"
                     Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "pull" -WorkingDirectory "$using:ConfSitesPath\$using:ConfAppName" -Wait -NoNewWindow -Verbose
                     Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "log -1 --pretty=format:'%h'" -Wait -NoNewWindow -Verbose -RedirectStandardOutput "$using:ConfSitesPath\New.txt"
@@ -164,6 +164,7 @@ Configuration NewConfig{
                     {
                         $l=@(Get-Content "$using:ConfSitesPath\Latest.txt")
                         $n=@(Get-Content "$using:ConfSitesPath\New.txt")
+                        Write-Verbose $n
                         if($l -ne $n)
                         {
                             Remove-Item "$using:ConfSitesPath\Latest.txt"
@@ -238,34 +239,41 @@ Configuration NewConfig{
             }
             TestScript={
                 $WStatus="$using:ConfSitesPath\OK.txt"
+                $Slack="$using:ConfScriptLocation\tz\slack.ps1"
                 try
                 {
-                    $response = Invoke-WebRequest -Uri "http://localhost/" -ErrorAction Stop
-                    # This will only execute if the Invoke-WebRequest is successful.
+                    Write-Verbose "Trying to check site!"
+                    $response = Invoke-WebRequest -Uri "http://localhost/" -UseBasicParsing -ErrorAction Stop
                     $StatusCode = $Response.StatusCode
+                    Write-Verbose "Trying is completed succesfuly."
+
+                                        
                 }
                 catch
                 {
                     $StatusCode = $_.Exception.Response.StatusCode.value__
+                    Write-Verbose "Problem!"
                 }
                 if ($StatusCode -eq 200)
                 {
                     if(!(test-path $WStatus))
-                    {
+                    {   
+                        Write-Verbose "Create SiteStatusOK!"
                         New-Item $WStatus
-                        $JSON = @"
+                        try
                         {
-                            "text":"Message from E. Borodin's script: Site is OK!"
+                            Write-Verbose "Trying to do slack notification"
+                            . ($Slack)
+                            Slack-Notification 'UP'
                         }
-"@                      | ConvertFrom-Json
-                        $Slack="https://hooks.slack.com/services/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"                
-                        $Response = Invoke-RestMethod -Uri $Slack -Method Post -Body $JSON -ContentType "application/json"
-                        if($Response -eq 'ok')
-                        {
-                            #$Log.Info("Notification was coplited!")
-                            Write-Verbose "Notification was coplited!"
+                        catch {
+                            #$Log.Fatal('Error while loading supporting PowerShell Scripts.')
+                            #$Log.Fatal($_.Exception.Message)
+                            Write-Verbose "Notification Error!"
+                            Write-Verbose $_.Exception.Message
                         }
                     }
+                    Write-Verbose "Site is OK!"
                     return $true
                 }
                 else
@@ -367,6 +375,6 @@ Configuration NewConfig{
     }
 }
 if("ApplyNewConfig" -in (Get-ScheduledTask).TaskName){Unregister-ScheduledTask -TaskName "ApplyNewConfig" -Confirm:$false}
-NewConfig -ComputerName 'localhost' -OutputPath $env:SystemDrive\DSCconfig
+NewConfig -ComputerName 'localhost' -OutputPath $env:SystemDrive\DSCconfig -Verbose
 Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
 Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose -Wait -Force
