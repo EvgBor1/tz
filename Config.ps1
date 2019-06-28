@@ -132,10 +132,10 @@ Configuration NewConfig{
                 if ($StatusCode -eq 200)
                 {
                     $JSON = @"
-                {
-                    "text":"Message from E. Borodin's script: Site is OK!"
-                }
-"@              | ConvertFrom-Json
+                    {
+                        "text":"Message from E. Borodin's script: Site is OK!"
+                    }
+"@                  | ConvertFrom-Json
                 $Slack="https://hooks.slack.com/services/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"
                 Write-Verbose "Release was updated."
                 $Response = Invoke-RestMethod -Uri $Slack -Method Post -Body $JSON -ContentType "application/json"
@@ -231,10 +231,13 @@ Configuration NewConfig{
                 $WConf="$using:ConfSitesPath\$using:ConfAppName\Web.config"
                 if(Test-Path $WConf)
                 {
+                    #Add automatic fix method here---------------------------------------------------------------
                     (Get-Content $WConf) -replace "<system.web.>","<system.web>" | out-file $WConf -Encoding utf8
+                    #--------------------------------------------------------------------------------------------
                 }
             }
             TestScript={
+                $WStatus="$using:ConfSitesPath\OK.txt"
                 try
                 {
                     $response = Invoke-WebRequest -Uri "http://localhost/" -ErrorAction Stop
@@ -247,10 +250,31 @@ Configuration NewConfig{
                 }
                 if ($StatusCode -eq 200)
                 {
+                    if(!(test-path $WStatus))
+                    {
+                        New-Item $WStatus
+                        $JSON = @"
+                        {
+                            "text":"Message from E. Borodin's script: Site is OK!"
+                        }
+"@                      | ConvertFrom-Json
+                        $Slack="https://hooks.slack.com/services/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"                
+                        $Response = Invoke-RestMethod -Uri $Slack -Method Post -Body $JSON -ContentType "application/json"
+                        if($Response -eq 'ok')
+                        {
+                            #$Log.Info("Notification was coplited!")
+                            Write-Verbose "Notification was coplited!"
+                        }
+                    }
                     return $true
                 }
                 else
                 {
+                    if(test-path $WStatus)
+                    {
+                        Remove-Item $WStatus -Force
+                    }
+                    Write-Verbose "Site is not working!"
                     return $false
                 }
             }
@@ -342,6 +366,7 @@ Configuration NewConfig{
         }
     }
 }
+if("ApplyNewConfig" -in (Get-ScheduledTask).TaskName){Unregister-ScheduledTask -TaskName "ApplyNewConfig" -Confirm:$false}
 NewConfig -ComputerName 'localhost' -OutputPath $env:SystemDrive\DSCconfig
 Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
 Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose -Wait -Force
