@@ -131,7 +131,7 @@ Configuration NewConfig
             GetScript = {
                 return $true
             }
-            DependsOn = @("[File]DirectoryCreate")
+            DependsOn = @("[File]WorkLocationCreate")
         }
         Archive ArchiveExtract
         {
@@ -255,7 +255,10 @@ Configuration NewConfig
                 Sleep 10
                 Get-ChildItem $using:SiteRepPath|Copy-Item -Destination $using:TestSitePath -Force
                 Sleep 10
-                Remove-Item $WStatus -Force
+                if (Test-Path $WStatus) {
+                    Remove-Item $WStatus -Force
+                }
+
             }
            TestScript = {
                 try
