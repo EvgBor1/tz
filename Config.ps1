@@ -2,12 +2,19 @@ Configuration NewConfig{
     param
     (
         [string]$ComputerName='localhost',
-        [string]$ConfAppName='DevOpsTaskJunior',
-        [string]$ConfScriptLocation=$env:SystemDrive+'\'+$ConfAppName+'Scripts',
-        [string]$ConfScriptsRepURL='https://github.com/EvgBor1/tz.git',
-        [string]$ConfSiteRepURL='https://github.com/EvgBor1/DevOpsTaskJunior.git',
-        [string]$ConfGitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip',
-        [string]$ConfSitesPath=$env:SystemDrive+'\WebSites'
+        [string]$AppName='DevOpsTaskJunior',
+        [string]$WorkLocation=$env:SystemDrive+'\'+$AppName+'Scripts',
+        [string]$ScrLocation=$WorkLocation+'\tz',
+        [string]$ScrRepURL='https://github.com/EvgBor1/tz.git',
+        [string]$SiteRepURL='https://github.com/EvgBor1/DevOpsTaskJunior.git',
+        [string]$Git=$WorkLocation+"\Git\cmd\git.exe",
+        [string]$GitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip',
+        [string]$SitesPath=$env:SystemDrive+'\WebSites',
+        [string]$SitePath=$SitesPath+'\'+$AppName,
+        [string]$LogsDll=$WorkLocation+"\tz\log4net.dll",
+        [string]$LogsDir=$WorkLocation+"\Logs",
+        [string]$LogFile=$LogsDir+"Log.log"
+        
 
     )
     Import-DscResource -ModuleName PSDesiredStateConfiguration
@@ -24,18 +31,18 @@ Configuration NewConfig{
         {
             Ensure = "Present"
             Type = "Directory"
-            DestinationPath = $ConfScriptLocation
+            DestinationPath = $WorkLocation
         }
         File SiteFolder
 		{
 			Ensure = 'Present'
 			Type = 'Directory'
-			DestinationPath = $ConfSitesPath+'\'+$ConfAppName
+			DestinationPath = $SitesPath+'\'+$AppName
 		}
         cNtfsPermissionEntry PermissionSet1
         {
             Ensure = 'Present'
-            Path = $ConfSitesPath+'\'+$ConfAppName
+            Path = $SitesPath+'\'+$AppName
             Principal = 'BUILTIN\IIS_IUSRS'
             AccessControlInformation = @(
                 cNtfsAccessControlInformation
@@ -53,58 +60,57 @@ Configuration NewConfig{
         {
             Ensure = "Present"
             Type = "Directory"
-            DestinationPath = "$ConfScriptLocation\Logs"
+            DestinationPath = "$WorkLocation\Logs"
         }
 
         Script Git
         {
             SetScript = {
                 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-                Invoke-WebRequest $using:ConfGitURL -OutFile "$using:ConfScriptLocation\git.zip"
+                Invoke-WebRequest $using:GitURL -OutFile "$using:WorkLocation\git.zip"
             }
-            TestScript = { Test-Path "$using:ConfScriptLocation\git.zip" }
-            GetScript = { Test-Path "$using:ConfScriptLocation\git.zip" }
+            TestScript = { Test-Path "$using:WorkLocation\git.zip" }
+            GetScript = { Test-Path "$using:WorkLocation\git.zip" }
             DependsOn = @("[File]DirectoryCreate")
         }
         Archive ArchiveExtract
         {
           Ensure = "Present"
-          Path = "$ConfScriptLocation\git.zip"
-          Destination = "$ConfScriptLocation\Git"
+          Path = "$WorkLocation\git.zip"
+          Destination = "$WorkLocation\Git"
           DependsOn = @("[Script]Git")
         }
         Script ScriptsInit
         {
             SetScript = {
-                Set-Location $using:ConfScriptLocation
-                Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfScriptsRepURL" -Wait -NoNewWindow -Verbose
+                Set-Location $using:WorkLocation
+                Start-Process -FilePath "$using:Git" -ArgumentList "clone $using:ScrRepURL" -Wait -NoNewWindow -Verbose
             }
-            TestScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
-            GetScript = { Test-Path "$using:ConfScriptLocation\tz\script.ps1" }
+            TestScript = { Test-Path "$using:ScrLocation\Config.ps1" }
+            GetScript = { Test-Path "$using:ScrLocation\Config.ps1" }
             DependsOn = @("[Archive]ArchiveExtract")
         }
         Script SiteInit
         {
             SetScript = {
-                Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "clone $using:ConfSiteRepURL" -WorkingDirectory $using:ConfSitesPath -Wait -NoNewWindow -Verbose
+                Start-Process -FilePath "$using:Git" -ArgumentList "clone $using:SiteRepURL" -WorkingDirectory $using:SitesPath -Wait -NoNewWindow -Verbose
             }
             TestScript = {
-                $dir=$using:ConfSitesPath+'\'+$using:ConfAppName
-                if(Test-Path "$dir\Web.config")
+                if(Test-Path "$using:SitePath\Web.config")
                 {
                     return $true
                 }
                 else
                 {
-                    if(Test-Path $dir)
+                    if(Test-Path $using:SitePath)
                     {
-                        Remove-Item $dir -Force -Recurse
+                        Remove-Item $using:SitePath -Force -Recurse
                     }
                     return $false
                 }
             }
             GetScript={
-                $WConf="$using:ConfSitesPath\$using:ConfAppName\Web.config"
+                $WConf="$using:SitePath\Web.config"
                 if(Test-Path $WConf)
                 {
                     @{ Result = Get-Content $WConf }
@@ -119,7 +125,7 @@ Configuration NewConfig{
         Script SiteUpdate
         {
             SetScript = {
-                $Slack="$using:ConfScriptLocation\tz\slack.ps1"
+                $Slack=$using:ScrLocation+'\slack.ps1'
                 try
                 {
                     $response = Invoke-WebRequest -Uri "http://localhost/" -UseBasicParsing -ErrorAction Stop
@@ -152,38 +158,37 @@ Configuration NewConfig{
 
 
             }
-            TestScript = {
+            TestScript = {                
                 Write-Verbose "Testing updates."
-                if(Test-Path "$using:ConfSitesPath\$using:ConfAppName" )
+                if(Test-Path $using:SitePath )
                 {
                     Write-Verbose "Changing location"
-                    Set-Location "$using:ConfSitesPath\$using:ConfAppName"
-                    Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "pull" -WorkingDirectory "$using:ConfSitesPath\$using:ConfAppName" -Wait -NoNewWindow -Verbose
-                    Start-Process -FilePath "$using:ConfScriptLocation\Git\cmd\git.exe" -ArgumentList "log -1 --pretty=format:'%h'" -Wait -NoNewWindow -Verbose -RedirectStandardOutput "$using:ConfSitesPath\New.txt"
-                    if(Test-Path "$using:ConfSitesPath\Latest.txt")
+                    Set-Location $using:SitePath
+                    Start-Process -FilePath $using:Git -ArgumentList "pull" -WorkingDirectory $using:SitePath -Wait -NoNewWindow -Verbose
+                    Start-Process -FilePath $using:Git -ArgumentList "log -1 --pretty=format:'%h'" -Wait -NoNewWindow -Verbose -RedirectStandardOutput "$using:SitesPath\New.txt"
+                    if(Test-Path "$using:SitesPath\Latest.txt")
                     {
-                        $l=@(Get-Content "$using:ConfSitesPath\Latest.txt")
-                        $n=@(Get-Content "$using:ConfSitesPath\New.txt")
-                        Write-Verbose $n
+                        $l=@(Get-Content "$using:SitesPath\Latest.txt")
+                        $n=@(Get-Content "$using:SitesPath\New.txt")
                         if($l -ne $n)
                         {
-                            Remove-Item "$using:ConfSitesPath\Latest.txt"
-                            Move-Item -Path "$using:ConfSitesPath\New.txt" -Destination "$using:ConfSitesPath\Latest.txt"
+                            Remove-Item "$using:SitesPath\Latest.txt"
+                            Move-Item -Path "$using:SitesPath\New.txt" -Destination "$using:SitesPath\Latest.txt"
                             return $false
                         }
                         else {
-                            Remove-Item "$using:ConfSitesPath\New.txt"
+                            Remove-Item "$using:SitesPath\New.txt"
                             return $true
                         }
                     }
                     else {
 
-                        Move-Item -Path "$using:ConfSitesPath\New.txt" -Destination "$using:ConfSitesPath\Latest.txt"
+                        Move-Item -Path "$using:SitesPath\New.txt" -Destination "$using:SitesPath\Latest.txt"
                         return $false
                     }
                 }
             }
-            GetScript = { @{ Result = (Get-Content "$using:ConfSitesPath\$using:ConfAppName\Web.config") }}
+            GetScript = { @{ Result = (Get-Content "$using:SitePath\Web.config") }}
             DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder","[Script]SiteInit")
         }
         WindowsFeature IIS
@@ -217,19 +222,19 @@ Configuration NewConfig{
 		{
 			Ensure = "Present"
 			State = "Started"
-			Name = $ConfAppName
+			Name = $AppName
 		}
 		xWebsite WebSite
 		{
 			Ensure = 'Present'
 			State = 'Started'
-			Name = $ConfAppName
-			PhysicalPath = "$ConfSitesPath\$ConfAppName"
+			Name = $AppName
+			PhysicalPath = "$SitesPath\$AppName"
 		}
         Script CheckWebSite
         {
             SetScript={
-                $WConf="$using:ConfSitesPath\$using:ConfAppName\Web.config"
+                $WConf="$using:SitePath\Web.config"
                 if(Test-Path $WConf)
                 {
                     #Add automatic fix method here---------------------------------------------------------------
@@ -238,8 +243,8 @@ Configuration NewConfig{
                 }
             }
             TestScript={
-                $WStatus="$using:ConfSitesPath\OK.txt"
-                $Slack="$using:ConfScriptLocation\tz\slack.ps1"
+                $WStatus=$using:SitesPath+'\OK.txt'
+                $Slack=$using:SrcLocation+'\slack.ps1'
                 try
                 {
                     Write-Verbose "Trying to check site!"
@@ -287,7 +292,7 @@ Configuration NewConfig{
                 }
             }
             GetScript={
-                $WConf="$using:ConfSitesPath\$using:ConfAppName\Web.config"
+                $WConf=$using:SitePath+'\Web.config'
                 if(Test-Path $WConf)
                 {
                     @{ Result = Get-Content $WConf }
@@ -317,7 +322,6 @@ Configuration NewConfig{
 
                 write-verbose "Installing .Net 4.5.2 from $BinPath"
                 write-verbose "Executing $binpath /q /norestart"
-                Sleep 5
                 Start-Process -FilePath $BinPath -ArgumentList "/q /norestart" -Wait -NoNewWindow
 		 	    Sleep 5
                 write-verbose "Installing WMF5.1 from $BinPath1"
@@ -325,7 +329,6 @@ Configuration NewConfig{
 		 	    Start-Process -FilePath "wusa.exe" -ArgumentList "$BinPath1 /quiet /norestart" -Wait -NoNewWindow
                 Sleep 5
                 Write-Verbose "Setting DSCMachineStatus to reboot server after DSC run is completed"
-                Sleep 5
                 $global:DSCMachineStatus = 1
             }
 

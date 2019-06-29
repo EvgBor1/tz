@@ -61,7 +61,7 @@
     }
   }
   catch{
-    $Log.Fatal("Fixing was not helped. Try to do it oneself or start the script again.")
+    $Log.Fatal("Fixing was not helped. Try to do it by yourself or start the script again.")
     $Log.Fatal($_.Exception.Message)
     Get-ChildItem $Latest|Remove-Item -Recurse
     Write-Debug "Fixing was not helped. Try to do it oneself."
