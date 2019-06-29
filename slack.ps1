@@ -12,20 +12,14 @@ $JSON1 = @"
 }
 "@
 $Slack="https://hooks.slack.com/services/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"
-if($Msg -eq 'OK')
+switch($Msg)
 {
-    $M=$JSON
-    Write-Host "New"
-}
-else
-{
-    $M=$JSON1
-    Write-Host "Update"
+    'OK' {$M=$JSON}
+    Default {$M=$JSON1}
 }
 $Response=Invoke-RestMethod -Uri $Slack -Method Post -Body $M -ContentType "application/json"
 if($Response -eq 'ok')
 {
-	#$Log.Info("Notification was coplited!")
-    Write-Verbose "Notification was coplited!"
+    LogMsg -Msg "Notification was coplited!"
 }
 }

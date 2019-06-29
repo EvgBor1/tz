@@ -1,4 +1,5 @@
-Configuration NewConfig{
+Configuration NewConfig
+{
     param
     (
         [string]$ComputerName='localhost',
@@ -11,9 +12,12 @@ Configuration NewConfig{
         [string]$GitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip',
         [string]$SitesPath=$env:SystemDrive+'\WebSites',
         [string]$SitePath=$SitesPath+'\'+$AppName,
-        [string]$LogsDll=$WorkLocation+"\tz\log4net.dll",
-        [string]$LogsDir=$WorkLocation+"\Logs",
-        [string]$LogFile=$LogsDir+"Log.log"
+        [string]$TestSitePath=$SitesPath+'\Test',
+        [string]$SiteRepPath=$WorkLocation+'\'+$AppName,
+        [string]$LogsDll=$SrcLocation+'\log4net.dll',
+        [string]$LogsDir=$WorkLocation+'\Logs',
+        [string]$LogFile=$LogsDir+'\Log.log',
+        [string]$Logs=$ScrLocation+'\logs.ps1'
         
 
     )
@@ -27,22 +31,28 @@ Configuration NewConfig{
             RebootNodeIfNeeded = $true
             ConfigurationMode = "ApplyAndAutoCorrect"
         }
-        File DirectoryCreate
+        File WorkLocationCreate
         {
             Ensure = "Present"
             Type = "Directory"
             DestinationPath = $WorkLocation
         }
         File SiteFolder
-		{
+        {
 			Ensure = 'Present'
 			Type = 'Directory'
-			DestinationPath = $SitesPath+'\'+$AppName
+			DestinationPath = $SitePath
 		}
-        cNtfsPermissionEntry PermissionSet1
+        File TestSiteFolder
+        {
+			Ensure = 'Present'
+			Type = 'Directory'
+			DestinationPath = $TestSitePath
+		}
+        cNtfsPermissionEntry PermSetSite
         {
             Ensure = 'Present'
-            Path = $SitesPath+'\'+$AppName
+            Path = $SitePath
             Principal = 'BUILTIN\IIS_IUSRS'
             AccessControlInformation = @(
                 cNtfsAccessControlInformation
@@ -55,22 +65,72 @@ Configuration NewConfig{
             )
             DependsOn = '[File]SiteFolder'
         }
+        cNtfsPermissionEntry PermSetTestSite
+        {
+            Ensure = 'Present'
+            Path = $TestSitePath
+            Principal = 'BUILTIN\IIS_IUSRS'
+            AccessControlInformation = @(
+                cNtfsAccessControlInformation
+                {
+                    AccessControlType = 'Allow'
+                    FileSystemRights = 'Modify'
+                    Inheritance = 'ThisFolderSubfoldersAndFiles'
+                    NoPropagateInherit = $false
+                }
+            )
+            DependsOn = '[File]TestSiteFolder'
+        }
 
-        File LogDirectoryCreate
+        File LogsDirCreate
         {
             Ensure = "Present"
             Type = "Directory"
-            DestinationPath = "$WorkLocation\Logs"
+            DestinationPath = $LogsDir
         }
 
         Script Git
         {
             SetScript = {
+                try
+                {
+                    . ($using:Logs)
+                }
+                catch
+                {
+                    
+                    Write-Host "[FATAL] Logs module Error!"
+                    Write-Verbose $_.Exception.Message
+                    
+                }
+                LogMsg -Msg "Downloading mini-git"
                 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
                 Invoke-WebRequest $using:GitURL -OutFile "$using:WorkLocation\git.zip"
+                
             }
-            TestScript = { Test-Path "$using:WorkLocation\git.zip" }
-            GetScript = { Test-Path "$using:WorkLocation\git.zip" }
+            TestScript = {
+                try
+                {
+                    . ($using:Logs)
+                }
+                catch
+                {
+                    
+                    Write-Host "[FATAL] Logs module Error!"
+                    Write-Verbose $_.Exception.Message
+                    
+                }
+                LogMsg -Msg "Checking mini-git..."
+                if(Test-Path "$using:WorkLocation\git.zip")
+                {
+                    LogMsg -Msg "Mini-git is presen"
+                    return $true
+                }
+                return $false
+            }
+            GetScript = {
+                return $true
+            }
             DependsOn = @("[File]DirectoryCreate")
         }
         Archive ArchiveExtract
@@ -83,113 +143,169 @@ Configuration NewConfig{
         Script ScriptsInit
         {
             SetScript = {
-                Set-Location $using:WorkLocation
-                Start-Process -FilePath "$using:Git" -ArgumentList "clone $using:ScrRepURL" -Wait -NoNewWindow -Verbose
+                try
+                {
+                    . ($using:Logs)
+                }
+                catch
+                {
+                    
+                    Write-Host "[FATAL] Logs module Error!"
+                    Write-Verbose $_.Exception.Message
+                    
+                }
+                LogMsg -Msg "Downloading scripts from github"
+                Start-Process -FilePath "$using:Git" -ArgumentList "clone $using:ScrRepURL" -WorkingDirectory $using:WorkLocation -Wait -NoNewWindow -Verbose
+                
             }
-            TestScript = { Test-Path "$using:ScrLocation\Config.ps1" }
-            GetScript = { Test-Path "$using:ScrLocation\Config.ps1" }
-            DependsOn = @("[Archive]ArchiveExtract")
+           TestScript = {
+                try
+                {
+                    . ($using:Logs)
+                }
+                catch
+                {
+                    
+                    Write-Host "[FATAL] Logs module Error!"
+                    Write-Verbose $_.Exception.Message
+                    
+                }
+                LogMsg -Msg "Checking scripts directory"
+                if (Test-Path "$using:ScrLocation\Config.ps1")
+                {
+                    LogMsg -Msg "Scripts directory doesn't contain the main script"
+                    return $true
+                }
+                return $false
+            }
+           GetScript = {
+
+                return $true
+           }
+            DependsOn = @("[Archive]ArchiveExtract", "[File]WorkLocationCreate")
         }
-        Script SiteInit
+        Script SiteRepInit
         {
             SetScript = {
-                Start-Process -FilePath "$using:Git" -ArgumentList "clone $using:SiteRepURL" -WorkingDirectory $using:SitesPath -Wait -NoNewWindow -Verbose
-            }
-            TestScript = {
-                if(Test-Path "$using:SitePath\Web.config")
+                try
                 {
+                    . ($using:Logs)
+                }
+                catch
+                {
+                    
+                    Write-Host "[FATAL] Logs module Error!"
+                    Write-Verbose $_.Exception.Message
+                    
+                }
+                LogMsg -Msg "Downloading WebApp from github"
+                Start-Process -FilePath "$using:Git" -ArgumentList "clone $using:SiteRepURL" -WorkingDirectory $using:WorkLocation -Wait -NoNewWindow -Verbose
+                
+            }
+           TestScript = {
+                try
+                {
+                    . ($using:Logs)
+                }
+                catch
+                {
+                    
+                    Write-Host "[FATAL] Logs module Error!"
+                    Write-Verbose $_.Exception.Message
+                    
+                }
+                LogMsg -Msg "Check WebApp from github"
+                if(Test-Path "$using:SiteRepPath\Web.config")
+                {
+                    LogMsg -Msg "RepWebApp is OK"
                     return $true
                 }
                 else
                 {
-                    if(Test-Path $using:SitePath)
+                    LogMsg -Msg "RepWebApp is not OK. Removing RepWebApp."
+                    if(Test-Path $using:SiteRepPath)
                     {
-                        Remove-Item $using:SitePath -Force -Recurse
+                        Remove-Item $using:SiteRepPath -Force -Recurse
                     }
                     return $false
                 }
             }
             GetScript={
-                $WConf="$using:SitePath\Web.config"
-                if(Test-Path $WConf)
-                {
-                    @{ Result = Get-Content $WConf }
-                }
-                else
-                {
-                    return "$WConf is not exist"
-                }
+                return $true
             }
-            DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder")
+            DependsOn = @("[Archive]ArchiveExtract", "[File]WorkLocationCreate")
         }
-        Script SiteUpdate
+        Script SiteRepUpdate
         {
             SetScript = {
-                $Slack=$using:ScrLocation+'\slack.ps1'
                 try
                 {
-                    $response = Invoke-WebRequest -Uri "http://localhost/" -UseBasicParsing -ErrorAction Stop
-                    # This will only execute if the Invoke-WebRequest is successful.
-                    $StatusCode = $Response.StatusCode
+                    . ($using:Logs)
                 }
                 catch
                 {
-                    $StatusCode = $_.Exception.Response.StatusCode.value__
+                    
+                    Write-Host "[FATAL] Logs module Error!"
+                    Write-Verbose $_.Exception.Message
+                    
                 }
-                if ($StatusCode -eq 200)
-                {
-                    try
-                        {
-                            . ($Slack)
-                            Slack-Notification    
-                        }
-                        catch {
-                            #$Log.Fatal('Error while loading supporting PowerShell Scripts.')
-                            #$Log.Fatal($_.Exception.Message)
-                            Write-Verbose "Notification Error!"
-                            Write-Verbose $_.Exception.Message
-                        }
-                }
-                else
-                {
-                    #$Log.Info("Notification was coplited!")
-                    Write-Verbose "New release has a problem!"
-                }
-
-
+                $WStatus=$using:WorkLocation+'\OK.txt'
+                LogMsg -Msg "Moving updates for testing."
+                Get-ChildItem $using:TestSitePath| Remove-Item -Force
+                Sleep 10
+                Get-ChildItem $using:SiteRepPath|Copy-Item -Destination $using:TestSitePath -Force
+                Sleep 10
+                Remove-Item $WStatus -Force
             }
-            TestScript = {                
-                Write-Verbose "Testing updates."
-                if(Test-Path $using:SitePath )
+           TestScript = {
+                try
+                {
+                    . ($using:Logs)
+                }
+                catch
+                {
+                    
+                    Write-Host "[FATAL] Logs module Error!"
+                    Write-Verbose $_.Exception.Message
+                    
+                }
+                
+                LogMsg -Msg "Existing updates."
+                if(Test-Path $using:SiteRepPath )
                 {
                     Write-Verbose "Changing location"
-                    Set-Location $using:SitePath
-                    Start-Process -FilePath $using:Git -ArgumentList "pull" -WorkingDirectory $using:SitePath -Wait -NoNewWindow -Verbose
-                    Start-Process -FilePath $using:Git -ArgumentList "log -1 --pretty=format:'%h'" -Wait -NoNewWindow -Verbose -RedirectStandardOutput "$using:SitesPath\New.txt"
-                    if(Test-Path "$using:SitesPath\Latest.txt")
+                    Start-Process -FilePath $using:Git -ArgumentList "pull" -WorkingDirectory $using:SiteRepPath -Wait -NoNewWindow -Verbose
+                    Start-Process -FilePath $using:Git -ArgumentList "log -1 --pretty=format:'%h'" -WorkingDirectory $using:SiteRepPath -Wait -NoNewWindow -Verbose -RedirectStandardOutput "$using:WorkLocation\New.txt"
+                    if(Test-Path "$using:WorkLocation\Latest.txt")
                     {
-                        $l=@(Get-Content "$using:SitesPath\Latest.txt")
-                        $n=@(Get-Content "$using:SitesPath\New.txt")
+                        $l=@(Get-Content "$using:WorkLocation\Latest.txt")
+                        $n=@(Get-Content "$using:WorkLocation\New.txt")
                         if($l -ne $n)
                         {
-                            Remove-Item "$using:SitesPath\Latest.txt"
-                            Move-Item -Path "$using:SitesPath\New.txt" -Destination "$using:SitesPath\Latest.txt"
+                            Remove-Item "$using:WorkLocation\Latest.txt"
+                            Move-Item -Path "$using:WorkLocation\New.txt" -Destination "$using:WorkLocation\Latest.txt"
+                            
                             return $false
                         }
                         else {
-                            Remove-Item "$using:SitesPath\New.txt"
+                            Remove-Item "$using:WorkLocation\New.txt"
+                            
                             return $true
                         }
                     }
                     else {
 
-                        Move-Item -Path "$using:SitesPath\New.txt" -Destination "$using:SitesPath\Latest.txt"
+                        Move-Item -Path "$using:WorkLocation\New.txt" -Destination "$using:WorkLocation\Latest.txt"
+                        
                         return $false
                     }
                 }
             }
-            GetScript = { @{ Result = (Get-Content "$using:SitePath\Web.config") }}
-            DependsOn = @("[Archive]ArchiveExtract","[File]SiteFolder","[Script]SiteInit")
+            GetScript = {
+
+                return $true
+            }
+            DependsOn = @("[Script]SiteRepInit")
         }
         WindowsFeature IIS
         {
@@ -231,54 +347,108 @@ Configuration NewConfig{
 			Name = $AppName
 			PhysicalPath = "$SitesPath\$AppName"
 		}
-        Script CheckWebSite
+        xWebAppPool TestWebAppPool
+		{
+			Ensure = "Present"
+			State = "Started"
+			Name = "Test$AppName"
+		}
+		xWebsite TestWebSite
+		{
+			Ensure = 'Present'
+			State = 'Started'
+			Name = "Test$AppName"
+			PhysicalPath = $TestSitePath
+            BindingInfo = @(
+            MSFT_xWebBindingInformation
+            {
+                Protocol              = 'HTTP'
+                Port                  = '7777'
+                IPAddress             = '*'
+                HostName              = ''
+
+            };
+            )
+		}
+        Script CheckTestWebSite
         {
-            SetScript={
-                $WConf="$using:SitePath\Web.config"
+            SetScript = {
+                try
+                {
+                    . ($using:Logs)
+                }
+                catch
+                {
+                    
+                    Write-Host "[FATAL] Logs module Error!"
+                    Write-Verbose $_.Exception.Message
+                    
+                }
+                
+                $WConf="$using:TestSitePath\Web.config"
                 if(Test-Path $WConf)
                 {
+                    LogMsg -Msg "Trying to fix test site"
                     #Add automatic fix method here---------------------------------------------------------------
                     (Get-Content $WConf) -replace "<system.web.>","<system.web>" | out-file $WConf -Encoding utf8
+                    (Get-Content $WConf) -replace "<system.web..>","<system.web>" | out-file $WConf -Encoding utf8
                     #--------------------------------------------------------------------------------------------
                 }
+                
             }
-            TestScript={
-                $WStatus=$using:SitesPath+'\OK.txt'
+           TestScript = {
+                try
+                {
+                    . ($using:Logs)
+                }
+                catch
+                {
+                    
+                    Write-Host "[FATAL] Logs module Error!"
+                    Write-Verbose $_.Exception.Message
+                    
+                }
+                
+                $WStatus=$using:WorkLocation+'\OK.txt'
                 $Slack=$using:SrcLocation+'\slack.ps1'
                 try
                 {
-                    Write-Verbose "Trying to check site!"
-                    $response = Invoke-WebRequest -Uri "http://localhost/" -UseBasicParsing -ErrorAction Stop
+                    LogMsg -Msg "Trying to check site!"
+                    $response = Invoke-WebRequest -Uri "http://localhost:7777/" -UseBasicParsing -ErrorAction Stop
                     $StatusCode = $Response.StatusCode
-                    Write-Verbose "Trying is completed succesfuly."
+                    LogMsg -Msg  "Trying is completed succesfuly."
 
                                         
                 }
                 catch
                 {
                     $StatusCode = $_.Exception.Response.StatusCode.value__
-                    Write-Verbose "Problem!"
+                    LogMsg -Msg "Problem!" -MsgType "Warn"
                 }
                 if ($StatusCode -eq 200)
                 {
                     if(!(test-path $WStatus))
                     {   
-                        Write-Verbose "Create SiteStatusOK!"
+                        LogMsg -Msg "Creating SiteStatusOK!"
                         New-Item $WStatus
+                        LogMsg -Msg "Copying to release"
+                        Get-ChildItem $using:SitePath| Remove-Item -Force
+                        Get-ChildItem $using:TestSitePath|Copy-Item -Destination $using:SitePath -Force
                         try
                         {
-                            Write-Verbose "Trying to do slack notification"
+                            LogMsg -Msg "Trying to do slack notification"
                             . ($Slack)
                             Slack-Notification 'UP'
                         }
                         catch {
                             #$Log.Fatal('Error while loading supporting PowerShell Scripts.')
                             #$Log.Fatal($_.Exception.Message)
-                            Write-Verbose "Notification Error!"
-                            Write-Verbose $_.Exception.Message
+                            LogMsg -Msg "Notification Error!" -MsgType "Error"
+                            LogMsg -Msg  $_.Exception.Message -MsgType "Error"
                         }
                     }
-                    Write-Verbose "Site is OK!"
+                    LogMsg -Msg "Test site is OK!"
+                    
                     return $true
                 }
                 else
@@ -287,25 +457,31 @@ Configuration NewConfig{
                     {
                         Remove-Item $WStatus -Force
                     }
-                    Write-Verbose "Site is not working!"
+                    LogMsg -Msg "Site is not working!" -MsgType "Fatal"
+                    
                     return $false
                 }
             }
-            GetScript={
-                $WConf=$using:SitePath+'\Web.config'
-                if(Test-Path $WConf)
-                {
-                    @{ Result = Get-Content $WConf }
-                }
-                else
-                {
-                    return "$WConf is not exist"
-                }
+            GetScript = {
+
+                    return $true
             }
         }
         Script Install_FW_WMF
         {
             SetScript = {
+                try
+                {
+                    . ($using:Logs)
+                }
+                catch
+                {
+                    
+                    Write-Host "[FATAL] Logs module Error!"
+                    Write-Verbose $_.Exception.Message
+                    
+                }
+                
                 $SourceURI = "https://download.microsoft.com/download/B/4/1/B4119C11-0423-477B-80EE-7A474314B347/NDP452-KB2901954-Web.exe"
 		 	    $SourceURIWMF = "https://go.microsoft.com/fwlink/?linkid=839516"
                 $BinPath = Join-Path $env:SystemRoot -ChildPath "Temp\fw452.exe"
@@ -320,19 +496,32 @@ Configuration NewConfig{
                     Invoke-Webrequest -Uri $SourceURIWMF -OutFile $BinPath1
                 }
 
-                write-verbose "Installing .Net 4.5.2 from $BinPath"
-                write-verbose "Executing $binpath /q /norestart"
+                LogMsg -Msg "Installing .Net 4.5.2 from $BinPath"
+                LogMsg -Msg "Executing $binpath /q /norestart"
                 Start-Process -FilePath $BinPath -ArgumentList "/q /norestart" -Wait -NoNewWindow
 		 	    Sleep 5
-                write-verbose "Installing WMF5.1 from $BinPath1"
-                write-verbose "Executing $binpath1 /quiet /norestart"
+                LogMsg -Msg "Installing WMF5.1 from $BinPath1"
+                LogMsg -Msg "Executing $binpath1 /quiet /norestart"
 		 	    Start-Process -FilePath "wusa.exe" -ArgumentList "$BinPath1 /quiet /norestart" -Wait -NoNewWindow
                 Sleep 5
-                Write-Verbose "Setting DSCMachineStatus to reboot server after DSC run is completed"
+                LogMsg -Msg "Setting DSCMachineStatus to reboot server after DSC run is completed" -MsgType "Warn"
                 $global:DSCMachineStatus = 1
+                
             }
 
-            TestScript = {
+           TestScript = {
+                try
+                {
+                    . ($using:Logs)
+                }
+                catch
+                {
+                    
+                    Write-Host "[FATAL] Logs module Error!"
+                    Write-Verbose $_.Exception.Message
+                    
+                }
+                
                 [int]$NetBuildVersion = 379893
 
                 if (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' | %{$_ -match 'Release'})
@@ -340,29 +529,43 @@ Configuration NewConfig{
                     [int]$CurrentRelease = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full').Release
                     if ($CurrentRelease -lt $NetBuildVersion)
                     {
-                        Write-Verbose "Current .Net build version is less than 4.5.2 ($CurrentRelease)"
+                        LogMsg -Msg "Current .Net build version is less than 4.5.2 ($CurrentRelease)" -MsgType "Warn"
+                        
                         return $false
                     }
                     else
                     {
                         if (! (Get-Module xWebAdministration -ListAvailable))
-                         {
+                        {
                             Install-Module -Name xWebAdministration -Force
                             Install-Module -Name cNtfsAccessControl -Force
-                            Write-Verbose "Some modules were installed."
-                         }
-                        Write-Verbose "Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
+                            LogMsg -Msg  "Some modules were installed."
+                        }
+                        LogMsg -Msg "Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
+                        
                         return $true
                     }
                 }
                 else
                 {
-                    Write-Verbose ".Net build version not recognised"
+                    LogMsg -Msg ".Net build version not recognised" -MsgType "Warn"
+                    
                     return $false
                 }
             }
 
             GetScript = {
+                try
+                {
+                    . ($using:Logs)
+                }
+                catch
+                {
+                    
+                    Write-Host "[FATAL] Logs module Error!"
+                    Write-Verbose $_.Exception.Message
+                    
+                }
                 if (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' | %{$_ -match 'Release'})
                 {
                     $NetBuildVersion =  (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full').Release
@@ -370,10 +573,11 @@ Configuration NewConfig{
                 }
                 else
                 {
-                    Write-Verbose ".Net build version not recognised"
+                    LogMsg -Msg ".Net build version not recognised" -MsgType "Warn"
                     return ".Net 4.5.2 not found"
                 }
             }
+            
         }
     }
 }

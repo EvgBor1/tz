@@ -1,13 +1,45 @@
 try
 {
-    Write-Verbose "Trying to do slack notification"
-    . ( )
-    Slack-Notification 'UP'
+    . ($using:Logs)
 }
 catch
 {
-    #$Log.Fatal('Error while loading supporting PowerShell Scripts.')
-    #$Log.Fatal($_.Exception.Message)
-    Write-Verbose "Notification Error!"
+    Start-Transcript -Path $LogFile -Append
+    Write-Host "[FATAL] Logs module Error!"
     Write-Verbose $_.Exception.Message
+    Stop-Transcript
 }
+
+                $Slack=$using:ScrLocation+'\slack.ps1'
+                try
+                {
+                    $response = Invoke-WebRequest -Uri "http://localhost/" -UseBasicParsing -ErrorAction Stop
+
+                    $StatusCode = $Response.StatusCode
+                }
+                catch
+                {
+                    $StatusCode = $_.Exception.Response.StatusCode.value__
+                }
+                if ($StatusCode -eq 200)
+                {
+                    try
+                    {
+                        . ($Slack)
+                        Slack-Notification
+                    }
+                    catch
+                    {
+                        Write-Verbose "Notification Error!"
+                        Write-Verbose $_.Exception.Message
+                    }
+                }
+                else
+                {
+                    #$Log.Info("Notification was coplited!")
+                    Write-Verbose "New release has a problem!"
+                }
+
+
+
+Remove-Item $WStatus -Force
