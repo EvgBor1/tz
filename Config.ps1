@@ -480,7 +480,9 @@ Configuration NewConfig
                 echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 		 	    Start-Process -FilePath "wusa.exe" -ArgumentList "$BinPath1 /quiet /norestart" -Wait -NoNewWindow
                 Sleep 5
-                LogMsg -Msg "Setting DSCMachineStatus to reboot server after DSC run is completed" -MsgType "Warn"
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=" [Warn] Setting DSCMachineStatus to reboot server after DSC run is completed."
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                 $global:DSCMachineStatus = 1
                 
             }

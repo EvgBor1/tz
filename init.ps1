@@ -49,38 +49,6 @@ Configuration Config
 			Type = 'Directory'
 			DestinationPath = $TestSitePath
 		}
-        cNtfsPermissionEntry PermSetSite
-        {
-            Ensure = 'Present'
-            Path = $SitePath
-            Principal = 'BUILTIN\IIS_IUSRS'
-            AccessControlInformation = @(
-                cNtfsAccessControlInformation
-                {
-                    AccessControlType = 'Allow'
-                    FileSystemRights = 'Modify'
-                    Inheritance = 'ThisFolderSubfoldersAndFiles'
-                    NoPropagateInherit = $false
-                }
-            )
-            DependsOn = '[File]SiteFolder'
-        }
-        cNtfsPermissionEntry PermSetTestSite
-        {
-            Ensure = 'Present'
-            Path = $TestSitePath
-            Principal = 'BUILTIN\IIS_IUSRS'
-            AccessControlInformation = @(
-                cNtfsAccessControlInformation
-                {
-                    AccessControlType = 'Allow'
-                    FileSystemRights = 'Modify'
-                    Inheritance = 'ThisFolderSubfoldersAndFiles'
-                    NoPropagateInherit = $false
-                }
-            )
-            DependsOn = '[File]TestSiteFolder'
-        }
 
         File LogsDirCreate
         {
@@ -245,7 +213,9 @@ Configuration Config
                 echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 		 	    Start-Process -FilePath "wusa.exe" -ArgumentList "$BinPath1 /quiet /norestart" -Wait -NoNewWindow
                 Sleep 5
-                LogMsg -Msg "Setting DSCMachineStatus to reboot server after DSC run is completed" -MsgType "Warn"
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=" [Warn] Setting DSCMachineStatus to reboot server after DSC run is completed."
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                 $global:DSCMachineStatus = 1
 
             }
@@ -317,7 +287,7 @@ Configuration Config
                 $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
                 $msg=" [Info] Creating scheduler task for New Configuration."
                 echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
-                $NewCfgTime=(Get-Date).AddMinutes(5)).ToString()
+                $NewCfgTime=((Get-Date).AddMinutes(5)).ToString()
                 $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $NewCfg
                 $trigger =  New-ScheduledTaskTrigger -Once -At $NewCfgTime
                 $Principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
@@ -355,7 +325,7 @@ try {
     $msg=" [Info] Init-Configuration was applyed succsessfully."
     echo $t$msg|Out-File -FilePath "$CurDir\Log.log" -Append -Force -Encoding "UTF8"
     $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
-    $msg=" [Info] You can find  next logs in C:\DevOpsTaskJuniorScripts\Logs\Log.log"
+    $msg=" [Info] You can find  addition logs in C:\DevOpsTaskJuniorScripts\Logs\Log.log"
     echo $t$msg|Out-File -FilePath "$CurDir\Log.log" -Append -Force -Encoding "UTF8"
 }
 catch {
