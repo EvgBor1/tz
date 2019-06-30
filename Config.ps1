@@ -559,7 +559,7 @@ Configuration NewConfig
                 }
             }
 
-            GetScript = {
+        GetScript = {
                 try
                 {
                     . ($using:Logs)
