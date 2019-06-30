@@ -284,17 +284,26 @@ Configuration Config
         Script CreateJob
         {
             SetScript = {
-                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
-                $msg=" [Info] Creating scheduler task for New Configuration."
-                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
-                $NewCfgTime=((Get-Date).AddMinutes(5)).ToString()
-                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $NewCfg
-                $trigger =  New-ScheduledTaskTrigger -Once -At $NewCfgTime
-                $Principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-                Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "ApplyNewConfig" -Description "Apply New DSC Configuration at Startup" -Principal $Principal
-                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
-                $msg=" [Info] The new configuration is going to apply at "
-                echo $t$msg$NewCfgTime|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                try {
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=" [Info] Creating scheduler task for New Configuration."
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                    $NewCfg=$using:ScrLocation+'\Config.ps1'
+                    $NewCfgTime=((Get-Date).AddMinutes(5)).ToString()
+                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $NewCfg
+                    $trigger =  New-ScheduledTaskTrigger -Once -At $NewCfgTime
+                    $Principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+                    Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "ApplyNewConfig" -Description "Apply New DSC Configuration at Startup" -Principal $Principal
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=" [Info] The new configuration is going to apply at "
+                    echo $t$msg$NewCfgTime|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                }
+                catch {
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=" [Fatal] The task was not be creating"
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                }
+
 
 
             }

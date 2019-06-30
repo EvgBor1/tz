@@ -20,6 +20,8 @@ switch($Msg)
 $Response=Invoke-RestMethod -Uri $Slack -Method Post -Body $M -ContentType "application/json"
 if($Response -eq 'ok')
 {
-    LogMsg -Msg "Notification was coplited!"
+    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+    $msg=' [Info] Notification was coplited!'
+    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 }
 }
