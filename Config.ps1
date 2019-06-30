@@ -550,7 +550,28 @@ Configuration NewConfig
         }
     }
 }
-if("ApplyNewConfig" -in (Get-ScheduledTask).TaskName){Unregister-ScheduledTask -TaskName "ApplyNewConfig" -Confirm:$false}
-NewConfig -ComputerName 'localhost' -OutputPath $env:SystemDrive\DSCconfig -Verbose
-Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
-Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose -Wait -Force
+if("ApplyNewConfig" -in (Get-ScheduledTask).TaskName){
+    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+    $msg=" [Info] Unregistering scheduler task for New Configuration."
+    echo $t$msg|Out-File -FilePath "C:\DevOpsTaskJuniorScripts\Logs\Log.log" -Append -Force -Encoding "UTF8"
+    Unregister-ScheduledTask -TaskName "ApplyNewConfig" -Confirm:$false
+    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+    $msg=" [Info] Scheduler task was unregistered."
+    echo $t$msg|Out-File -FilePath "C:\DevOpsTaskJuniorScripts\Logs\Log.log" -Append -Force -Encoding "UTF8"
+}
+try {
+    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+    $msg=" [Info] Trying to apply a New Configuration."
+    echo $t$msg|Out-File -FilePath "C:\DevOpsTaskJuniorScripts\Logs\Log.log" -Append -Force -Encoding "UTF8"
+    NewConfig -ComputerName 'localhost' -OutputPath $env:SystemDrive\DSCconfig -Verbose
+    Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
+    Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose -Wait -Force
+    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+    $msg=" [Info] New Configuration was applyed succsessfully."
+    echo $t$msg|Out-File -FilePath "C:\DevOpsTaskJuniorScripts\Logs\Log.log" -Append -Force -Encoding "UTF8"
+}
+catch {
+    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+    $msg=" [Fatal] New Configuration was not applyed succsessfully."
+    echo $t$msg|Out-File -FilePath "C:\DevOpsTaskJuniorScripts\Logs\Log.log" -Append -Force -Encoding "UTF8"
+}
