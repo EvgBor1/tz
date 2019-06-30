@@ -92,38 +92,23 @@ Configuration NewConfig
         Script Git
         {
             SetScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-                    
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-                    
-                }
-                LogMsg -Msg "Downloading mini-git"
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Downloading mini-git'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
                 Invoke-WebRequest $using:GitURL -OutFile "$using:WorkLocation\git.zip"
                 
             }
             TestScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-                    
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-                    
-                }
-                LogMsg -Msg "Checking mini-git..."
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Checking mini-git...'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+
                 if(Test-Path "$using:WorkLocation\git.zip")
                 {
-                    LogMsg -Msg "Mini-git is presen"
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] Mini-git is presen'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                     return $true
                 }
                 return $false
@@ -143,40 +128,29 @@ Configuration NewConfig
         Script ScriptsInit
         {
             SetScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-                    
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-                    
-                }
-                LogMsg -Msg "Downloading scripts from github"
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Downloading scripts from github'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                 Start-Process -FilePath "$using:Git" -ArgumentList "clone $using:ScrRepURL" -WorkingDirectory $using:WorkLocation -Wait -NoNewWindow -Verbose
                 
             }
            TestScript = {
-                try
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Checking scripts directory'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+
+                if (!(Test-Path "$using:ScrLocation\Config.ps1"))
                 {
-                    . ($using:Logs)
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] Scripts directory does not contain the main script'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+
+                    return $false
                 }
-                catch
-                {
-                    
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-                    
-                }
-                LogMsg -Msg "Checking scripts directory"
-                if (Test-Path "$using:ScrLocation\Config.ps1")
-                {
-                    LogMsg -Msg "Scripts directory doesn't contain the main script"
-                    return $true
-                }
-                return $false
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Scripts directory is OK!'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                return $true
             }
            GetScript = {
 
@@ -187,42 +161,31 @@ Configuration NewConfig
         Script SiteRepInit
         {
             SetScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-                    
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-                    
-                }
-                LogMsg -Msg "Downloading WebApp from github"
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Downloading WebApp from github'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+
                 Start-Process -FilePath "$using:Git" -ArgumentList "clone $using:SiteRepURL" -WorkingDirectory $using:WorkLocation -Wait -NoNewWindow -Verbose
                 
             }
            TestScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-                    
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-                    
-                }
-                LogMsg -Msg "Check WebApp from github"
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Check WebApp from github'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+
                 if(Test-Path "$using:SiteRepPath\Web.config")
                 {
-                    LogMsg -Msg "RepWebApp is OK"
+
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] RepWebApp is OK'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                     return $true
                 }
                 else
                 {
-                    LogMsg -Msg "RepWebApp is not OK. Removing RepWebApp."
+
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] RepWebApp is not OK. Removing RepWebApp.'
                     if(Test-Path $using:SiteRepPath)
                     {
                         Remove-Item $using:SiteRepPath -Force -Recurse
@@ -238,19 +201,12 @@ Configuration NewConfig
         Script SiteRepUpdate
         {
             SetScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-                    
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-                    
-                }
+
                 $WStatus=$using:WorkLocation+'\OK.txt'
-                LogMsg -Msg "Moving updates for testing."
+
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Moving updates for testing.'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                 Get-ChildItem $using:TestSitePath -Recurse| Remove-Item -Recurse -Force
                 Sleep 10
                 Copy-Item -Path "$using:SiteRepPath\*" -Destination $using:TestSitePath -Recurse -Force
@@ -261,19 +217,10 @@ Configuration NewConfig
 
             }
            TestScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-                    
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-                    
-                }
-                
-                LogMsg -Msg "Existing updates."
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Existing updates.'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+
                 if(Test-Path $using:SiteRepPath )
                 {
                     Write-Verbose "Changing location"
@@ -378,22 +325,15 @@ Configuration NewConfig
         Script CheckTestWebSite
         {
             SetScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-                    
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-                    
-                }
+
                 
                 $WConf="$using:TestSitePath\Web.config"
                 if(Test-Path $WConf)
                 {
-                    LogMsg -Msg "Trying to fix test site"
+
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] Trying to fix test site.'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                     #Add automatic fix method here---------------------------------------------------------------
                     (Get-Content $WConf) -replace "<system.web.>","<system.web>" | out-file $WConf -Encoding utf8
                     (Get-Content $WConf) -replace "<system.web..>","<system.web>" | out-file $WConf -Encoding utf8
@@ -402,58 +342,90 @@ Configuration NewConfig
                 
             }
            TestScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-                    
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-                    
-                }
+
                 
                 $WStatus=$using:WorkLocation+'\OK.txt'
                 $Slack=$using:SrcLocation+'\slack.ps1'
                 try
                 {
-                    LogMsg -Msg "Trying to check site!"
+
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] Trying to check test site.'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                     $response = Invoke-WebRequest -Uri "http://localhost:7777/" -UseBasicParsing -ErrorAction Stop
                     $StatusCode = $Response.StatusCode
-                    LogMsg -Msg  "Trying is completed succesfuly."
+
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] Trying is completed succesfuly.'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 
                                         
                 }
                 catch
                 {
                     $StatusCode = $_.Exception.Response.StatusCode.value__
-                    LogMsg -Msg "Problem!" -MsgType "Warn"
+
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Warn] We have a problem with test web site.'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                 }
                 if ($StatusCode -eq 200)
                 {
                     if(!(test-path $WStatus))
                     {   
-                        LogMsg -Msg "Creating SiteStatusOK!"
+
+                        $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                        $msg=' [Info] Creating SiteStatusOK!'
+                        echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                         New-Item $WStatus
-                        LogMsg -Msg "Copying to release"
+
+                        $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                        $msg=' [Info] Copying to release.'
+                        echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                         Get-ChildItem $using:SitePath| Remove-Item -Recurse -Force
                         Copy-Item -Path "$using:TestSitePath\*" -Destination $using:SitePath -Recurse -Force
                         try
                         {
-                            LogMsg -Msg "Trying to do slack notification"
+
+                            $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                            $msg=' [Info] Trying to do notification to Slack.'
+                            echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                             . ($Slack)
                             Slack-Notification 'UP'
                         }
                         catch {
                             #$Log.Fatal('Error while loading supporting PowerShell Scripts.')
                             #$Log.Fatal($_.Exception.Message)
-                            LogMsg -Msg "Notification Error!" -MsgType "Error"
-                            LogMsg -Msg  $_.Exception.Message -MsgType "Error"
+                            $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                            $msg=' [Error] Notification Error!.'
+                            echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+
                         }
                     }
-                    LogMsg -Msg "Test site is OK!"
-                    
+
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] Test site is OK!'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                    #-----------------проверить работу основного сайта
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] Trying to check main site.'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                    try {
+                        $response = Invoke-WebRequest -Uri "http://localhost/" -UseBasicParsing -ErrorAction Stop
+                        $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                        $msg=' [Info] Trying completed successfully.'
+                        echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                    }
+                    catch {
+                        $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                        $msg=' [Error] Main site has problems.'
+                        echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                        Get-ChildItem $using:SitePath| Remove-Item -Recurse -Force
+                        Copy-Item -Path "$using:TestSitePath\*" -Destination $using:SitePath -Recurse -Force
+                        $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                        $msg=' [Info] Recovering of the main site completed successfully.'
+                        echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                    }
                     return $true
                 }
                 else
@@ -462,7 +434,10 @@ Configuration NewConfig
                     {
                         Remove-Item $WStatus -Force
                     }
-                    LogMsg -Msg "Site is not working!" -MsgType "Fatal"
+
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Error] Site is not working!'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                     
                     return $false
                 }
@@ -475,17 +450,7 @@ Configuration NewConfig
         Script Install_FW_WMF
         {
             SetScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-                    
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-                    
-                }
+
                 
                 $SourceURI = "https://download.microsoft.com/download/B/4/1/B4119C11-0423-477B-80EE-7A474314B347/NDP452-KB2901954-Web.exe"
 		 	    $SourceURIWMF = "https://go.microsoft.com/fwlink/?linkid=839516"
@@ -500,13 +465,14 @@ Configuration NewConfig
                 {
                     Invoke-Webrequest -Uri $SourceURIWMF -OutFile $BinPath1
                 }
-
-                LogMsg -Msg "Installing .Net 4.5.2 from $BinPath"
-                LogMsg -Msg "Executing $binpath /q /norestart"
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=" [Info] Installing .Net 4.5.2 from $BinPath. Executing $binpath /q /norestart."
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                 Start-Process -FilePath $BinPath -ArgumentList "/q /norestart" -Wait -NoNewWindow
 		 	    Sleep 5
-                LogMsg -Msg "Installing WMF5.1 from $BinPath1"
-                LogMsg -Msg "Executing $binpath1 /quiet /norestart"
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=" [Info] Installing WMF5.1 from $BinPath1. Executing $binpath1 /quiet /norestart."
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 		 	    Start-Process -FilePath "wusa.exe" -ArgumentList "$BinPath1 /quiet /norestart" -Wait -NoNewWindow
                 Sleep 5
                 LogMsg -Msg "Setting DSCMachineStatus to reboot server after DSC run is completed" -MsgType "Warn"
@@ -515,17 +481,7 @@ Configuration NewConfig
             }
 
            TestScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-                    
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-                    
-                }
+
                 
                 [int]$NetBuildVersion = 379893
 
@@ -534,7 +490,10 @@ Configuration NewConfig
                     [int]$CurrentRelease = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full').Release
                     if ($CurrentRelease -lt $NetBuildVersion)
                     {
-                        LogMsg -Msg "Current .Net build version is less than 4.5.2 ($CurrentRelease)" -MsgType "Warn"
+
+                        $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                        $msg=" [Warn] Current .Net build version is less than 4.5.2 ($CurrentRelease)"
+                        echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                         
                         return $false
                     }
@@ -544,33 +503,30 @@ Configuration NewConfig
                         {
                             Install-Module -Name xWebAdministration -Force
                             Install-Module -Name cNtfsAccessControl -Force
-                            LogMsg -Msg  "Some modules were installed."
+
+                            $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                            $msg=" [Info] Some modules were installed."
+                            echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                         }
-                        LogMsg -Msg "Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
+                        $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                        $msg=" [Info] Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
+                        echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                         
                         return $true
                     }
                 }
                 else
                 {
-                    LogMsg -Msg ".Net build version not recognised" -MsgType "Warn"
-                    
+
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=" [Warn] .Net build version not recognised."
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                     return $false
                 }
             }
 
         GetScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-                    
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-                    
-                }
+
                 if (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' | %{$_ -match 'Release'})
                 {
                     $NetBuildVersion =  (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full').Release
@@ -578,7 +534,10 @@ Configuration NewConfig
                 }
                 else
                 {
-                    LogMsg -Msg ".Net build version not recognised" -MsgType "Warn"
+
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=" [Warn] .Net build version not recognised."
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                     return ".Net 4.5.2 not found"
                 }
             }

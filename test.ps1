@@ -43,3 +43,7 @@ catch
 
 
 Remove-Item $WStatus -Force
+
+$t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+$msg=' [Info] Test Message'
+echo $t$msg|Out-File -FilePath ".\test.txt" -Append -Force -Encoding "UTF8"
