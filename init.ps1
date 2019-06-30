@@ -327,15 +327,12 @@ try {
     $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
     $msg=" [Info] Trying to apply a Init-Configuration."
     echo $t$msg|Out-File -FilePath "$CurDir\Log.log" -Append -Force -Encoding "UTF8"
-    Config -OutputPath $env:SystemDrive\DSCconfig
-    Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
-    Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose -Wait -Force
-    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
-    $msg=" [Info] Init-Configuration was applyed succsessfully."
-    echo $t$msg|Out-File -FilePath "$CurDir\Log.log" -Append -Force -Encoding "UTF8"
     $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
     $msg=" [Info] You can find  addition logs in C:\DevOpsTaskJuniorScripts\Logs\Log.log"
     echo $t$msg|Out-File -FilePath "$CurDir\Log.log" -Append -Force -Encoding "UTF8"
+    Config -OutputPath $env:SystemDrive\DSCconfig
+    Set-DscLocalConfigurationManager -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose
+    Start-DscConfiguration  -ComputerName localhost -Path $env:SystemDrive\DSCconfig -Verbose -Wait -Force
 }
 catch {
     $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()

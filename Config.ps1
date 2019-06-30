@@ -18,7 +18,7 @@ Configuration NewConfig
         [string]$LogsDir=$WorkLocation+'\Logs',
         [string]$LogFile=$LogsDir+'\Log.log',
         [string]$Logs=$ScrLocation+'\logs.ps1'
-        
+
 
     )
     Import-DscResource -ModuleName PSDesiredStateConfiguration
@@ -97,7 +97,7 @@ Configuration NewConfig
                 echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
                 Invoke-WebRequest $using:GitURL -OutFile "$using:WorkLocation\git.zip"
-                
+
             }
             TestScript = {
                 $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
@@ -132,7 +132,7 @@ Configuration NewConfig
                 $msg=' [Info] Downloading scripts from github'
                 echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                 Start-Process -FilePath "$using:Git" -ArgumentList "clone $using:ScrRepURL" -WorkingDirectory $using:WorkLocation -Wait -NoNewWindow -Verbose
-                
+
             }
            TestScript = {
                 $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
@@ -166,7 +166,7 @@ Configuration NewConfig
                 echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 
                 Start-Process -FilePath "$using:Git" -ArgumentList "clone $using:SiteRepURL" -WorkingDirectory $using:WorkLocation -Wait -NoNewWindow -Verbose
-                
+
             }
            TestScript = {
                 $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
@@ -234,19 +234,19 @@ Configuration NewConfig
                         {
                             Remove-Item "$using:WorkLocation\Latest.txt"
                             Move-Item -Path "$using:WorkLocation\New.txt" -Destination "$using:WorkLocation\Latest.txt"
-                            
+
                             return $false
                         }
                         else {
                             Remove-Item "$using:WorkLocation\New.txt"
-                            
+
                             return $true
                         }
                     }
                     else {
 
                         Move-Item -Path "$using:WorkLocation\New.txt" -Destination "$using:WorkLocation\Latest.txt"
-                        
+
                         return $false
                     }
                 }
@@ -330,7 +330,7 @@ Configuration NewConfig
         {
             SetScript = {
 
-                
+
                 $WConf="$using:TestSitePath\Web.config"
                 if(Test-Path $WConf)
                 {
@@ -343,11 +343,11 @@ Configuration NewConfig
                     (Get-Content $WConf) -replace "<system.web..>","<system.web>" | out-file $WConf -Encoding utf8
                     #--------------------------------------------------------------------------------------------
                 }
-                
+
             }
            TestScript = {
 
-                
+
                 $WStatus=$using:WorkLocation+'\OK.txt'
                 $Slack=$using:SrcLocation+'\slack.ps1'
                 try
@@ -363,7 +363,7 @@ Configuration NewConfig
                     $msg=' [Info] Trying is completed succesfuly.'
                     echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 
-                                        
+
                 }
                 catch
                 {
@@ -376,7 +376,7 @@ Configuration NewConfig
                 if ($StatusCode -eq 200)
                 {
                     if(!(test-path $WStatus))
-                    {   
+                    {
 
                         $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
                         $msg=' [Info] Creating SiteStatusOK!'
@@ -394,8 +394,19 @@ Configuration NewConfig
                             $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
                             $msg=' [Info] Trying to do notification to Slack.'
                             echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
-                            . ($Slack)
-                            Slack-Notification 'UP'
+                            $JSON = @"
+{
+"text":"Message from E. Borodin's script: Site is OK!"
+}
+"@
+                            $Slack="https://hooks.slack.com/services/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"
+                            $Response=Invoke-RestMethod -Uri $Slack -Method Post -Body $JSON -ContentType "application/json"
+                            if($Response -eq 'ok')
+                            {
+                                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                                $msg=' [Info] Notification was coplited!'
+                                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                            }
                         }
                         catch {
                             #$Log.Fatal('Error while loading supporting PowerShell Scripts.')
@@ -410,7 +421,7 @@ Configuration NewConfig
                     $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
                     $msg=' [Info] Test site is OK!'
                     echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
-                    #-----------------проверить работу основного сайта
+
                     $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
                     $msg=' [Info] Trying to check main site.'
                     echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
@@ -442,7 +453,7 @@ Configuration NewConfig
                     $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
                     $msg=' [Error] Site is not working!'
                     echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
-                    
+
                     return $false
                 }
             }
@@ -456,7 +467,7 @@ Configuration NewConfig
         {
             SetScript = {
 
-                
+
                 $SourceURI = "https://download.microsoft.com/download/B/4/1/B4119C11-0423-477B-80EE-7A474314B347/NDP452-KB2901954-Web.exe"
 		 	    $SourceURIWMF = "https://go.microsoft.com/fwlink/?linkid=839516"
                 $BinPath = Join-Path $env:SystemRoot -ChildPath "Temp\fw452.exe"
@@ -484,12 +495,12 @@ Configuration NewConfig
                 $msg=" [Warn] Setting DSCMachineStatus to reboot server after DSC run is completed."
                 echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                 $global:DSCMachineStatus = 1
-                
+
             }
 
             TestScript = {
 
-                
+
                 [int]$NetBuildVersion = 379893
 
                 if (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' | %{$_ -match 'Release'})
@@ -501,7 +512,7 @@ Configuration NewConfig
                         $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
                         $msg=" [Warn] Current .Net build version is less than 4.5.2 ($CurrentRelease)"
                         echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
-                        
+
                         return $false
                     }
                     else
@@ -518,7 +529,7 @@ Configuration NewConfig
                         $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
                         $msg=" [Info] Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
                         echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
-                        
+
                         return $true
                     }
                 }
@@ -548,7 +559,7 @@ Configuration NewConfig
                     return ".Net 4.5.2 not found"
                 }
             }
-            
+
         }
     }
 }
