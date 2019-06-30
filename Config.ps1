@@ -7,7 +7,7 @@ Configuration NewConfig
         [string]$WorkLocation=$env:SystemDrive+'\'+$AppName+'Scripts',
         [string]$ScrLocation=$WorkLocation+'\tz',
         [string]$ScrRepURL='https://github.com/EvgBor1/tz.git',
-        [string]$SiteRepURL='https://github.com/EvgBor1/DevOpsTaskJunior.git',
+        [string]$SiteRepURL='https://github.com/TargetProcess/DevOpsTaskJunior.git',
         [string]$Git=$WorkLocation+"\Git\cmd\git.exe",
         [string]$GitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip',
         [string]$SitesPath=$env:SystemDrive+'\WebSites',
@@ -223,9 +223,31 @@ Configuration NewConfig
 
                 if(Test-Path $using:SiteRepPath )
                 {
-                    Write-Verbose "Changing location"
-                    Start-Process -FilePath $using:Git -ArgumentList "pull" -WorkingDirectory $using:SiteRepPath -Wait -NoNewWindow -Verbose
-                    Start-Process -FilePath $using:Git -ArgumentList "log -1 --pretty=format:'%h'" -WorkingDirectory $using:SiteRepPath -Wait -NoNewWindow -Verbose -RedirectStandardOutput "$using:WorkLocation\New.txt"
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] Downloading updates.'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                    try
+                    {
+                        #Start-Process -FilePath $using:Git -ArgumentList "reset --hard" -WorkingDirectory $using:SiteRepPath -Wait -NoNewWindow -Verbose
+                        Start-Process -FilePath $using:Git -ArgumentList "pull" -WorkingDirectory $using:SiteRepPath -Wait -NoNewWindow -Verbose
+                        Start-Process -FilePath $using:Git -ArgumentList "log -1 --pretty=format:'%h'" -WorkingDirectory $using:SiteRepPath -Wait -NoNewWindow -Verbose -RedirectStandardOutput "$using:WorkLocation\New.txt"
+                    }
+                    catch
+                    {
+                        $t = (Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                        $msg = ' [Error] Downloading has problems. It will be tried after 15 minutes.'
+                        echo $t$msg|Out-File -FilePath $using: LogFile -Append -Force -Encoding "UTF8"
+                        if (Test-Path "$using: WorkLocation\Latest.txt")
+                        {
+                            Remove-Item "$using: WorkLocation\Latest.txt"
+                        }
+                        if (Test-Path $using: SiteRepPath)
+                        {
+                            Remove-Item $using: SiteRepPath -Recurse
+                        }
+                        return $true
+                    }
+
                     if(Test-Path "$using:WorkLocation\Latest.txt")
                     {
                         $l=@(Get-Content "$using:WorkLocation\Latest.txt")
@@ -250,6 +272,7 @@ Configuration NewConfig
                         return $false
                     }
                 }
+                return $true
             }
             GetScript = {
 
@@ -340,7 +363,7 @@ Configuration NewConfig
                     echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                     #Add automatic fix method here---------------------------------------------------------------
                     (Get-Content $WConf) -replace "<system.web.>","<system.web>" | out-file $WConf -Encoding utf8
-                    (Get-Content $WConf) -replace "<system.web..>","<system.web>" | out-file $WConf -Encoding utf8
+                    #(Get-Content $WConf) -replace "<system.web..>","<system.web>" | out-file $WConf -Encoding utf8
                     #--------------------------------------------------------------------------------------------
                 }
 

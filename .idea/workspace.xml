@@ -2,8 +2,18 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2b391035-25c0-427b-a4e7-262b6b6812e7" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Config.ps1" beforeDir="false" afterPath="$PROJECT_DIR$/Config.ps1" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/files.ps1" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix.ps1" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/iis.ps1" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/init.ps1" beforeDir="false" afterPath="$PROJECT_DIR$/init.ps1" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/slack.ps1" beforeDir="false" afterPath="$PROJECT_DIR$/slack.ps1" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/log4net.dll" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/logs.ps1" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script.ps1" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/slack.ps1" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.ps1" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -13,20 +23,23 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Config.ps1">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="375">
-              <caret line="394" column="68" lean-forward="true" selection-start-line="393" selection-start-column="28" selection-end-line="395" selection-end-column="105" />
+            <state relative-caret-position="543">
+              <caret line="241" column="73" lean-forward="true" selection-start-line="241" selection-start-column="73" selection-end-line="241" selection-end-column="73" />
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/slack.ps1">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="360">
-              <caret line="24" column="81" selection-start-line="24" selection-start-column="81" selection-end-line="24" selection-end-column="81" />
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/README.md">
+          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+            <state split_layout="SPLIT">
+              <first_editor relative-caret-position="240">
+                <caret line="16" column="103" selection-start-line="16" selection-start-column="103" selection-end-line="16" selection-end-column="103" />
+              </first_editor>
+              <second_editor />
             </state>
           </provider>
         </entry>
@@ -34,8 +47,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/init.ps1">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="562">
-              <caret line="298" column="42" selection-start-line="298" selection-start-column="31" selection-end-line="298" selection-end-column="42" />
+            <state relative-caret-position="406">
+              <caret line="211" column="47" lean-forward="true" selection-start-line="211" selection-start-column="41" selection-end-line="211" selection-end-column="47" />
             </state>
           </provider>
         </entry>
@@ -79,9 +92,10 @@
         <option value="$PROJECT_DIR$/fix.ps1" />
         <option value="$PROJECT_DIR$/logs.ps1" />
         <option value="$PROJECT_DIR$/test.ps1" />
-        <option value="$PROJECT_DIR$/init.ps1" />
-        <option value="$PROJECT_DIR$/Config.ps1" />
         <option value="$PROJECT_DIR$/slack.ps1" />
+        <option value="$PROJECT_DIR$/init.ps1" />
+        <option value="$PROJECT_DIR$/README.md" />
+        <option value="$PROJECT_DIR$/Config.ps1" />
       </list>
     </option>
   </component>
@@ -266,7 +280,21 @@
       <option name="project" value="LOCAL" />
       <updated>1561902936393</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="update">
+      <created>1561908635298</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1561908635299</updated>
+    </task>
+    <task id="LOCAL-00019" summary="update">
+      <created>1561911790094</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1561911790094</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="TodoView">
@@ -349,24 +377,34 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/slack.ps1">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="360">
+          <caret line="24" column="81" selection-start-line="24" selection-start-column="81" selection-end-line="24" selection-end-column="81" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/init.ps1">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="562">
-          <caret line="298" column="42" selection-start-line="298" selection-start-column="31" selection-end-line="298" selection-end-column="42" />
+        <state relative-caret-position="406">
+          <caret line="211" column="47" lean-forward="true" selection-start-line="211" selection-start-column="41" selection-end-line="211" selection-end-column="47" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="240">
+            <caret line="16" column="103" selection-start-line="16" selection-start-column="103" selection-end-line="16" selection-end-column="103" />
+          </first_editor>
+          <second_editor />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/Config.ps1">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="375">
-          <caret line="394" column="68" lean-forward="true" selection-start-line="393" selection-start-column="28" selection-end-line="395" selection-end-column="105" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/slack.ps1">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="360">
-          <caret line="24" column="81" selection-start-line="24" selection-start-column="81" selection-end-line="24" selection-end-column="81" />
+        <state relative-caret-position="543">
+          <caret line="241" column="73" lean-forward="true" selection-start-line="241" selection-start-column="73" selection-end-line="241" selection-end-column="73" />
         </state>
       </provider>
     </entry>

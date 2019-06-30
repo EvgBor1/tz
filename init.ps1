@@ -9,7 +9,7 @@ Configuration Config
         [string]$WorkLocation=$env:SystemDrive+'\'+$AppName+'Scripts',
         [string]$ScrLocation=$WorkLocation+'\tz',
         [string]$ScrRepURL='https://github.com/EvgBor1/tz.git',
-        [string]$SiteRepURL='https://github.com/EvgBor1/DevOpsTaskJunior.git',
+        [string]$SiteRepURL='https://github.com/TargetProcess/DevOpsTaskJunior.git',
         [string]$Git=$WorkLocation+"\Git\cmd\git.exe",
         [string]$GitURL='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip',
         [string]$SitesPath=$env:SystemDrive+'\WebSites',
