@@ -251,9 +251,9 @@ Configuration NewConfig
                 }
                 $WStatus=$using:WorkLocation+'\OK.txt'
                 LogMsg -Msg "Moving updates for testing."
-                Get-ChildItem $using:TestSitePath| Remove-Item -Force
+                Get-ChildItem $using:TestSitePath -Recurse| Remove-Item -Recurse -Force
                 Sleep 10
-                Get-ChildItem $using:SiteRepPath|Copy-Item -Destination $using:TestSitePath -Force
+                Copy-Item -Path "$using:SiteRepPath\*" -Destination $using:TestSitePath -Recurse -Force
                 Sleep 10
                 if (Test-Path $WStatus) {
                     Remove-Item $WStatus -Force
@@ -348,6 +348,7 @@ Configuration NewConfig
 			Ensure = 'Present'
 			State = 'Started'
 			Name = $AppName
+            ApplicationPool = $AppName
 			PhysicalPath = "$SitesPath\$AppName"
 		}
         xWebAppPool TestWebAppPool
@@ -361,6 +362,7 @@ Configuration NewConfig
 			Ensure = 'Present'
 			State = 'Started'
 			Name = "Test$AppName"
+            ApplicationPool = "Test$AppName"
 			PhysicalPath = $TestSitePath
             BindingInfo = @(
             MSFT_xWebBindingInformation
@@ -435,8 +437,8 @@ Configuration NewConfig
                         LogMsg -Msg "Creating SiteStatusOK!"
                         New-Item $WStatus
                         LogMsg -Msg "Copying to release"
-                        Get-ChildItem $using:SitePath| Remove-Item -Force
-                        Get-ChildItem $using:TestSitePath|Copy-Item -Destination $using:SitePath -Force
+                        Get-ChildItem $using:SitePath| Remove-Item -Recurse -Force
+                        Copy-Item -Path "$using:TestSitePath\*" -Destination $using:SitePath -Recurse -Force
                         try
                         {
                             LogMsg -Msg "Trying to do slack notification"
