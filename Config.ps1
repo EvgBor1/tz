@@ -218,17 +218,17 @@ Configuration NewConfig
             }
            TestScript = {
                 $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
-                $msg=' [Info] Existing updates.'
+                $msg=' [Info] Checking updates.'
                 echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 
                 if(Test-Path $using:SiteRepPath )
                 {
                     $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
-                    $msg=' [Info] Downloading updates.'
+                    $msg=' [Info] Trying to pull AppRep.'
                     echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                     try
                     {
-                        #Start-Process -FilePath $using:Git -ArgumentList "reset --hard" -WorkingDirectory $using:SiteRepPath -Wait -NoNewWindow -Verbose
+                        Start-Process -FilePath $using:Git -ArgumentList "reset --hard" -WorkingDirectory $using:SiteRepPath -Wait -NoNewWindow -Verbose
                         Start-Process -FilePath $using:Git -ArgumentList "pull" -WorkingDirectory $using:SiteRepPath -Wait -NoNewWindow -Verbose
                         Start-Process -FilePath $using:Git -ArgumentList "log -1 --pretty=format:'%h'" -WorkingDirectory $using:SiteRepPath -Wait -NoNewWindow -Verbose -RedirectStandardOutput "$using:WorkLocation\New.txt"
                     }
@@ -236,14 +236,14 @@ Configuration NewConfig
                     {
                         $t = (Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
                         $msg = ' [Error] Downloading has problems. It will be tried after 15 minutes.'
-                        echo $t$msg|Out-File -FilePath $using: LogFile -Append -Force -Encoding "UTF8"
-                        if (Test-Path "$using: WorkLocation\Latest.txt")
+                        echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                        if (Test-Path "$using:WorkLocation\Latest.txt")
                         {
-                            Remove-Item "$using: WorkLocation\Latest.txt"
+                            Remove-Item "$using:WorkLocation\Latest.txt" -Force
                         }
-                        if (Test-Path $using: SiteRepPath)
+                        if (Test-Path $using:SiteRepPath)
                         {
-                            Remove-Item $using: SiteRepPath -Recurse
+                            Remove-Item $using:SiteRepPath -Recurse -Force
                         }
                         return $true
                     }
