@@ -1,5 +1,6 @@
 # tz
 Скачайте и запустите на сервере под локальным администратором файлик init.ps1
+
 Что произойдёт:
  - Установится Windows PowerShell Desired State Configuration Service
  - Установится FrameWork 4.5.2 + WMF5.1
