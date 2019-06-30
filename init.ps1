@@ -92,38 +92,23 @@ Configuration Config
         Script Git
         {
             SetScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-
-                }
-                LogMsg -Msg "Downloading mini-git"
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Downloading mini-git'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
                 Invoke-WebRequest $using:GitURL -OutFile "$using:WorkLocation\git.zip"
 
             }
             TestScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Checking mini-git...'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-
-                }
-                LogMsg -Msg "Checking mini-git..."
                 if(Test-Path "$using:WorkLocation\git.zip")
                 {
-                    LogMsg -Msg "Mini-git is presen"
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] Mini-git is presen'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                     return $true
                 }
                 return $false
@@ -143,86 +128,64 @@ Configuration Config
         Script ScriptsInit
         {
             SetScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-
-                }
-                LogMsg -Msg "Downloading scripts from github"
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Downloading scripts from github'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                 Start-Process -FilePath "$using:Git" -ArgumentList "clone $using:ScrRepURL" -WorkingDirectory $using:WorkLocation -Wait -NoNewWindow -Verbose
 
             }
            TestScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Checking scripts directory'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-
-                }
-                LogMsg -Msg "Checking scripts directory"
-                if (Test-Path "$using:ScrLocation\Config.ps1")
+                if (!(Test-Path "$using:ScrLocation\Config.ps1"))
                 {
-                    LogMsg -Msg "Scripts directory doesn't contain the main script"
-                    return $true
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] Scripts directory does not contain the main script'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+
+                    return $false
                 }
-                return $false
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Scripts directory is OK!'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                return $true
             }
            GetScript = {
 
                 return $true
            }
-            DependsOn = @("[Archive]ArchiveExtract", "[File]WorkLocationCreate")
+            DependsOn = @("[Archive]ArchiveExtract")
         }
         Script SiteRepInit
         {
             SetScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Downloading WebApp from github'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-
-                }
-                LogMsg -Msg "Downloading WebApp from github"
                 Start-Process -FilePath "$using:Git" -ArgumentList "clone $using:SiteRepURL" -WorkingDirectory $using:WorkLocation -Wait -NoNewWindow -Verbose
 
             }
            TestScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=' [Info] Check WebApp from github'
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-
-                }
-                LogMsg -Msg "Check WebApp from github"
                 if(Test-Path "$using:SiteRepPath\Web.config")
                 {
-                    LogMsg -Msg "RepWebApp is OK"
+
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] RepWebApp is OK'
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                     return $true
                 }
                 else
                 {
-                    LogMsg -Msg "RepWebApp is not OK. Removing RepWebApp."
+
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=' [Info] RepWebApp is not OK. Removing RepWebApp.'
                     if(Test-Path $using:SiteRepPath)
                     {
                         Remove-Item $using:SiteRepPath -Force -Recurse
@@ -233,7 +196,7 @@ Configuration Config
             GetScript={
                 return $true
             }
-            DependsOn = @("[Archive]ArchiveExtract", "[File]WorkLocationCreate")
+            DependsOn = @("[Archive]ArchiveExtract")
         }
         WindowsFeature IIS
         {
@@ -257,17 +220,7 @@ Configuration Config
         Script Install_FW_WMF
         {
             SetScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
 
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-
-                }
 
                 $SourceURI = "https://download.microsoft.com/download/B/4/1/B4119C11-0423-477B-80EE-7A474314B347/NDP452-KB2901954-Web.exe"
 		 	    $SourceURIWMF = "https://go.microsoft.com/fwlink/?linkid=839516"
@@ -282,13 +235,14 @@ Configuration Config
                 {
                     Invoke-Webrequest -Uri $SourceURIWMF -OutFile $BinPath1
                 }
-
-                LogMsg -Msg "Installing .Net 4.5.2 from $BinPath"
-                LogMsg -Msg "Executing $binpath /q /norestart"
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=" [Info] Installing .Net 4.5.2 from $BinPath. Executing $binpath /q /norestart."
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                 Start-Process -FilePath $BinPath -ArgumentList "/q /norestart" -Wait -NoNewWindow
 		 	    Sleep 5
-                LogMsg -Msg "Installing WMF5.1 from $BinPath1"
-                LogMsg -Msg "Executing $binpath1 /quiet /norestart"
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=" [Info] Installing WMF5.1 from $BinPath1. Executing $binpath1 /quiet /norestart."
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 		 	    Start-Process -FilePath "wusa.exe" -ArgumentList "$BinPath1 /quiet /norestart" -Wait -NoNewWindow
                 Sleep 5
                 LogMsg -Msg "Setting DSCMachineStatus to reboot server after DSC run is completed" -MsgType "Warn"
@@ -296,18 +250,8 @@ Configuration Config
 
             }
 
-           TestScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
+            TestScript = {
 
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-
-                }
 
                 [int]$NetBuildVersion = 379893
 
@@ -316,7 +260,10 @@ Configuration Config
                     [int]$CurrentRelease = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full').Release
                     if ($CurrentRelease -lt $NetBuildVersion)
                     {
-                        LogMsg -Msg "Current .Net build version is less than 4.5.2 ($CurrentRelease)" -MsgType "Warn"
+
+                        $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                        $msg=" [Warn] Current .Net build version is less than 4.5.2 ($CurrentRelease)"
+                        echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 
                         return $false
                     }
@@ -326,33 +273,29 @@ Configuration Config
                         {
                             Install-Module -Name xWebAdministration -Force
                             Install-Module -Name cNtfsAccessControl -Force
-                            LogMsg -Msg  "Some modules were installed."
+
+                            $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                            $msg=" [Info] Some modules were installed."
+                            echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                         }
-                        LogMsg -Msg "Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
+                        $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                        $msg=" [Info] Current .Net build version is the same as or higher than 4.5.2 ($CurrentRelease)"
+                        echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
 
                         return $true
                     }
                 }
                 else
                 {
-                    LogMsg -Msg ".Net build version not recognised" -MsgType "Warn"
 
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=" [Warn] .Net build version not recognised."
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                     return $false
                 }
             }
+            GetScript = {
 
-        GetScript = {
-                try
-                {
-                    . ($using:Logs)
-                }
-                catch
-                {
-
-                    Write-Host "[FATAL] Logs module Error!"
-                    Write-Verbose $_.Exception.Message
-
-                }
                 if (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' | %{$_ -match 'Release'})
                 {
                     $NetBuildVersion =  (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full').Release
@@ -360,28 +303,40 @@ Configuration Config
                 }
                 else
                 {
-                    LogMsg -Msg ".Net build version not recognised" -MsgType "Warn"
+
+                    $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                    $msg=" [Warn] .Net build version not recognised."
+                    echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
                     return ".Net 4.5.2 not found"
                 }
             }
-
         }
         Script CreateJob
         {
             SetScript = {
-                $NewCfg=$using:ScrLocation+'\Config.ps1'
-                if((Test-Path $NewCfg) -and (Get-Module xWebAdministration -ListAvailable))
-                {
-                    $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $NewCfg
-                    $trigger =  New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(5)).ToString()
-                    $Principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-                    Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "ApplyNewConfig" -Description "Apply New DSC Configuration at Startup" -Principal $Principal
-                    Write-Verbose "Setting DSCMachineStatus to reboot server after DSC run is completed"
-                }
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=" [Info] Creating scheduler task for New Configuration."
+                echo $t$msg|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+                $NewCfgTime=(Get-Date).AddMinutes(5)).ToString()
+                $action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument $NewCfg
+                $trigger =  New-ScheduledTaskTrigger -Once -At $NewCfgTime
+                $Principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+                Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "ApplyNewConfig" -Description "Apply New DSC Configuration at Startup" -Principal $Principal
+                $t=(Get-Date -UFormat "%d/%m/%Y %T %Z").ToString()
+                $msg=" [Info] The new configuration is going to apply at "
+                echo $t$msg$NewCfgTime|Out-File -FilePath $using:LogFile -Append -Force -Encoding "UTF8"
+
 
             }
-            TestScript = { return ("ApplyNewConfig" -in (Get-ScheduledTask).TaskName) }
-            GetScript = { $Result = Get-ScheduledTask|?{$_.TaskName -like "ApplyNewConfig"} }
+
+            TestScript = {
+                $NewCfg=$using:ScrLocation+'\Config.ps1'
+                if((Test-Path $NewCfg) -and (Get-Module xWebAdministration -ListAvailable) -and ("ApplyNewConfig" -notin (Get-ScheduledTask).TaskName)){
+                    return $false
+                }
+                return $true
+            }
+            GetScript = {return $true}
             DependsOn = @("[Script]ScriptsInit","[Script]Install_FW_WMF")
         }
 

@@ -156,7 +156,7 @@ Configuration NewConfig
 
                 return $true
            }
-            DependsOn = @("[Archive]ArchiveExtract", "[File]WorkLocationCreate")
+            DependsOn = @("[Archive]ArchiveExtract")
         }
         Script SiteRepInit
         {
@@ -196,7 +196,7 @@ Configuration NewConfig
             GetScript={
                 return $true
             }
-            DependsOn = @("[Archive]ArchiveExtract", "[File]WorkLocationCreate")
+            DependsOn = @("[Archive]ArchiveExtract")
         }
         Script SiteRepUpdate
         {
@@ -282,13 +282,14 @@ Configuration NewConfig
 			Name = 'Default Web Site'
 			State = 'Stopped'
 			PhysicalPath = 'C:\inetpub\wwwroot'
-			DependsOn = @('[WindowsFeature]IIS','[WindowsFeature]AspNet')
+			DependsOn = @('[WindowsFeature]AspNet')
 		}
 		xWebAppPool WebAppPool
 		{
 			Ensure = "Present"
 			State = "Started"
 			Name = $AppName
+            DependsOn = @('[WindowsFeature]AspNet')
 		}
 		xWebsite WebSite
 		{
@@ -297,12 +298,14 @@ Configuration NewConfig
 			Name = $AppName
             ApplicationPool = $AppName
 			PhysicalPath = "$SitesPath\$AppName"
+            DependsOn = @('[xWebAppPool]WebAppPool')
 		}
         xWebAppPool TestWebAppPool
 		{
 			Ensure = "Present"
 			State = "Started"
 			Name = "Test$AppName"
+            DependsOn = @('[WindowsFeature]IIS','[WindowsFeature]AspNet')
 		}
 		xWebsite TestWebSite
 		{
@@ -321,6 +324,7 @@ Configuration NewConfig
 
             };
             )
+            DependsOn = @('[xWebAppPool]TestWebAppPool')
 		}
         Script CheckTestWebSite
         {
@@ -446,6 +450,7 @@ Configuration NewConfig
 
                     return $true
             }
+            DependsOn = @('[xWebsite]TestWebSite','[xWebsite]WebSite')
         }
         Script Install_FW_WMF
         {
@@ -480,7 +485,7 @@ Configuration NewConfig
                 
             }
 
-           TestScript = {
+            TestScript = {
 
                 
                 [int]$NetBuildVersion = 379893
@@ -525,7 +530,7 @@ Configuration NewConfig
                 }
             }
 
-        GetScript = {
+            GetScript = {
 
                 if (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' | %{$_ -match 'Release'})
                 {
