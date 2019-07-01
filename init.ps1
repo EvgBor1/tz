@@ -16,10 +16,8 @@ Configuration Config
         [string]$SitePath=$SitesPath+'\'+$AppName,
         [string]$TestSitePath=$SitesPath+'\Test',
         [string]$SiteRepPath=$WorkLocation+'\'+$AppName,
-        [string]$LogsDll=$SrcLocation+'\log4net.dll',
         [string]$LogsDir=$WorkLocation+'\Logs',
-        [string]$LogFile=$LogsDir+'\Log.log',
-        [string]$Logs=$ScrLocation+'\logs.ps1'
+        [string]$LogFile=$LogsDir+'\Log.log'
 
 
     )
